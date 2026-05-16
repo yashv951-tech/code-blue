@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE BLUE</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080c0f;
+  --panel: #0d1319;
+  --panel2: #111820;
+  --border: #1a2535;
+  --border2: #243040;
+  --text: #d4e8f0;
+  --text-dim: #4a6070;
+  --text-muted: #2a3a45;
+  --red: #ff3333;
+  --red-dim: #661111;
+  --red-glow: rgba(255,51,51,0.15);
+  --green: #00ff88;
+  --green-dim: #004422;
+  --amber: #ffaa00;
+  --amber-dim: #443300;
+  --cyan: #00ccff;
+  --cyan-dim: #003344;
+  --mono: 'Share Tech Mono', monospace;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'DM Sans', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ── INTRO SCREEN ── */
+#introScreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  gap: 0;
+}
+
+.intro-alert {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.intro-title {
+  font-family: var(--display);
+  font-size: clamp(4rem, 12vw, 7rem);
+  color: var(--text);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.intro-title span { color: var(--red); }
+
+.intro-sub {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  margin-bottom: 3rem;
+  text-transform: uppercase;
+}
+
+.intro-scenario {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--red);
+  padding: 1.2rem 1.5rem;
+  max-width: 480px;
+  width: 90%;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text);
+  font-weight: 300;
+}
+
+.intro-scenario strong { color: var(--amber); font-weight: 500; }
+
+.intro-rules {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rule-chip {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rule-chip::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  flex-shrink: 0;
+}
+
+.btn-start {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 3rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn-start:hover { background: #ff5555; }
+.btn-start:active { transform: scale(0.97); }
+
+/* ── MAIN GAME LAYOUT ── */
+#gameScreen {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  color: var(--red);
+}
+
+.topbar-case {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Timer */
+.timer-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timer-label {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+#timerDisplay {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  letter-spacing: 0.05em;
+  color: var(--green);
+  min-width: 60px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+#timerDisplay.urgent { color: var(--amber); }
+#timerDisplay.critical { color: var(--red); animation: blink 0.5s step-end infinite; }
+
+/* Monitor row */
+.monitor-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.vital-box {
+  background: var(--panel);
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vital-label {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.vital-value {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  transition: color 0.5s;
+}
+
+.vital-value.normal { color: var(--green); }
+.vital-value.abnormal { color: var(--amber); }
+.vital-value.critical { color: var(--red); }
+
+.vital-unit {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  color: var(--text-dim);
+}
+
+/* ECG line */
+.ecg-wrap {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ecg-label {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+canvas#ecgCanvas {
+  flex: 1;
+  height: 28px;
+}
+
+/* Main content area */
+.content-area {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* Chat / log panel */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  scroll-behavior: smooth;
+}
+
+.chat-log::-webkit-scrollbar { width: 4px; }
+.chat-log::-webkit-scrollbar-track { background: transparent; }
+.chat-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: msgIn 0.25s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-sender {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.msg-sender.system { color: var(--red); }
+.msg-sender.nurse { color: var(--cyan); }
+.msg-sender.monitor { color: var(--green); }
+.msg-sender.ai { color: var(--amber); }
+.msg-sender.player { color: var(--text-dim); }
+
+.msg-body {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  font-weight: 300;
+  padding: 0.5rem 0.7rem;
+  border-radius: 2px;
+  max-width: 92%;
+}
+
+.msg-body.system {
+  background: var(--red-glow);
+  border-left: 2px solid var(--red);
+  color: var(--text);
+}
+
+.msg-body.nurse {
+  background: var(--cyan-dim);
+  border-left: 2px solid var(--cyan);
+  color: var(--text);
+}
+
+.msg-body.monitor {
+  background: var(--green-dim);
+  border-left: 2px solid var(--green);
+  color: var(--text);
+}
+
+.msg-body.ai {
+  background: var(--amber-dim);
+  border-left: 2px solid var(--amber);
+  color: var(--text);
+}
+
+.msg-body.player {
+  background: var(--panel2);
+  border-left: 2px solid var(--border2);
+  color: var(--text-dim);
+  align-self: flex-end;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.msg-body strong { font-weight: 500; }
+.msg-body em { color: var(--amber); font-style: normal; }
+
+/* Typing indicator */
+.typing-indicator {
+  display: none;
+  gap: 4px;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+}
+
+.typing-indicator.show { display: flex; }
+.typing-indicator span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: typingDot 1.2s ease infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%,60%,100% { opacity: 0.2; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Input row */
+.input-area {
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  background: var(--panel);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 2px;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.quick-btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+
+.cmd-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cmd-prompt {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+input#cmdInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  caret-color: var(--green);
+}
+
+input#cmdInput::placeholder { color: var(--text-muted); }
+
+.btn-send {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background 0.15s;
+  border-radius: 1px;
+}
+
+.btn-send:hover { background: #ff5555; }
+.btn-send:disabled { background: var(--red-dim); cursor: default; }
+
+/* Right sidebar */
+.sidebar {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0.8rem;
+}
+
+.sidebar-title {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.patient-name {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.patient-meta {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.7rem 0.8rem;
+}
+
+.checklist::-webkit-scrollbar { width: 3px; }
+.checklist::-webkit-scrollbar-thumb { background: var(--border); }
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  line-height: 1.4;
+  transition: color 0.3s;
+}
+
+.check-box {
+  width: 12px; height: 12px;
+  border: 1px solid var(--border2);
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.check-item.done { color: var(--green); }
+.check-item.done .check-box {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.check-item.done .check-box::after {
+  content: '✓';
+  font-size: 8px;
+  color: #000;
+  font-weight: 700;
+}
+
+.score-wrap {
+  padding: 0.7rem 0.8rem;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.score-label {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+
+.score-value {
+  font-family: var(--display);
+  font-size: 2rem;
+  color: var(--cyan);
+  letter-spacing: 0.05em;
+}
+
+/* End screen */
+#endScreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(8,12,15,0.95);
+  z-index: 60;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#endScreen.show { display: flex; }
+
+.end-status {
+  font-family: var(--display);
+  font-size: clamp(3rem, 8vw, 5rem);
+  letter-spacing: 0.1em;
+}
+
+.end-status.survived { color: var(--green); }
+.end-status.failed { color: var(--red); }
+
+.end-diagnosis {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.end-explanation {
+  max-width: 480px;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  font-weight: 300;
+  color: var(--text);
+  padding: 1rem 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+}
+
+.end-score {
+  font-family: var(--display);
+  font-size: 3rem;
+  color: var(--cyan);
+  letter-spacing: 0.1em;
+}
+
+.end-score-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: -0.5rem;
+}
+
+.btn-restart {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  letter-spacing: 0.15em;
+  background: transparent;
+  border: 1px solid var(--text-dim);
+  color: var(--text);
+  padding: 0.6rem 2.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-restart:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* Loading dots */
+.loading {
+  display: inline-flex;
+  gap: 3px;
+}
+.loading span {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: typingDot 1s ease infinite;
+}
+.loading span:nth-child(2) { animation-delay: 0.15s; }
+.loading span:nth-child(3) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="introScreen">
+  <div class="intro-alert">⚠ Code Blue Activated</div>
+  <div class="intro-title">CODE <span>BLUE</span></div>
+  <div class="intro-sub">Medical Emergency Simulation</div>
+  <div class="intro-scenario">
+    You are the <strong>on-call resident</strong>. It's 2:47 AM. The nurse has just called a Code Blue on a patient in Room 4. The monitor is alarming. You have <strong>10 minutes</strong> to stabilize the patient and identify the diagnosis before it's too late.<br><br>
+    Type orders in plain English. Ask questions. Think fast.
+  </div>
+  <div class="intro-rules">
+    <div class="rule-chip">10 minute countdown</div>
+    <div class="rule-chip">Type any order</div>
+    <div class="rule-chip">AI plays nurse + patient</div>
+    <div class="rule-chip">Find the diagnosis</div>
+  </div>
+  <button class="btn-start" onclick="startGame()">Enter Room 4</button>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen">
+  <div class="topbar">
+    <div class="topbar-title">CODE BLUE</div>
+    <div class="topbar-case">Room 4 · Night Shift · Case #07</div>
+    <div class="timer-wrap">
+      <div class="timer-label">Time remaining</div>
+      <div id="timerDisplay">10:00</div>
+    </div>
+  </div>
+
+  <div class="monitor-row">
+    <div class="vital-box">
+      <div class="vital-label">HR bpm</div>
+      <div class="vital-value critical" id="vHR">138</div>
+    </div>
+    <div class="vital-box">
+      <div class="vital-label">BP mmHg</div>
+      <div class="vital-value abnormal" id="vBP">88/54</div>
+    </div>
+    <div class="vital-box">
+      <div class="vital-label">SpO₂ %</div>
+      <div class="vital-value abnormal" id="vO2">91</div>
+    </div>
+    <div class="vital-box">
+      <div class="vital-label">RR /min</div>
+      <div class="vital-value abnormal" id="vRR">26</div>
+    </div>
+  </div>
+
+  <div class="ecg-wrap">
+    <div class="ecg-label">ECG II</div>
+    <canvas id="ecgCanvas"></canvas>
+  </div>
+
+  <div class="content-area">
+    <div class="chat-panel">
+      <div class="chat-log" id="chatLog">
+        <div class="typing-indicator" id="typingIndicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="quickAction('Get IV access and draw stat labs')">IV + Labs</button>
+          <button class="quick-btn" onclick="quickAction('Give 1L NS bolus IV')">1L NS bolus</button>
+          <button class="quick-btn" onclick="quickAction('Apply oxygen 15L via non-rebreather mask')">O₂ NRB</button>
+          <button class="quick-btn" onclick="quickAction('Get 12-lead ECG now')">12-lead ECG</button>
+          <button class="quick-btn" onclick="quickAction('What is the patient history?')">Hx</button>
+          <button class="quick-btn" onclick="quickAction('Examine the patient')">Examine</button>
+          <button class="quick-btn" onclick="quickAction('Get portable CXR stat')">CXR</button>
+          <button class="quick-btn" onclick="quickAction('Call attending for backup')">Call attending</button>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-prompt">▶</span>
+          <input type="text" id="cmdInput" placeholder="Type your order or question..." autocomplete="off" />
+          <button class="btn-send" id="sendBtn" onclick="sendCommand()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Patient</div>
+        <div class="patient-name" id="patientName">Loading...</div>
+        <div class="patient-meta" id="patientMeta">—</div>
+      </div>
+      <div class="sidebar-section" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+        <div class="sidebar-title">Management Checklist</div>
+        <div class="checklist" id="checklist"></div>
+      </div>
+      <div class="score-wrap">
+        <div class="score-label">Score</div>
+        <div class="score-value" id="scoreDisplay">0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div id="endScreen">
+  <div class="end-status" id="endStatus">SURVIVED</div>
+  <div class="end-diagnosis" id="endDiagnosis">Diagnosis: —</div>
+  <div class="end-explanation" id="endExplanation"></div>
+  <div class="end-score" id="endScore">0</div>
+  <div class="end-score-label">Final Score</div>
+  <button class="btn-restart" onclick="location.reload()">New Case</button>
+</div>
+
+<script>
+// ── ECG CANVAS ──
+const ecgCanvas = document.getElementById('ecgCanvas');
+const ecgCtx = ecgCanvas.getContext('2d');
+let ecgX = 0;
+let ecgData = [];
+let ecgRate = 'tachy';
+
+function ecgWaveform(x) {
+  const period = ecgRate === 'tachy' ? 60 : ecgRate === 'slow' ? 120 : ecgRate === 'vfib' ? 20 : 80;
+  const pos = x % period;
+  if (ecgRate === 'vfib') return (Math.random() - 0.5) * 18;
+  if (pos < period * 0.3) return Math.sin(pos / (period*0.3) * Math.PI) * 1.5;
+  if (pos > period * 0.35 && pos < period * 0.38) return 20;
+  if (pos >= period * 0.38 && pos < period * 0.42) return -8;
+  if (pos >= period * 0.42 && pos < period * 0.48) return 12;
+  if (pos >= period * 0.48 && pos < period * 0.58) return Math.sin((pos - period*0.48)/(period*0.1)*Math.PI)*3;
+  return 0;
+}
+
+function drawECG() {
+  const w = ecgCanvas.width, h = ecgCanvas.height;
+  ecgCtx.clearRect(0, 0, w, h);
+  ecgCtx.strokeStyle = '#00ff88';
+  ecgCtx.lineWidth = 1.5;
+  ecgCtx.shadowBlur = 4;
+  ecgCtx.shadowColor = '#00ff88';
+  ecgCtx.beginPath();
+  for (let i = 0; i < ecgData.length; i++) {
+    const x = i;
+    const y = h/2 - ecgData[i];
+    i === 0 ? ecgCtx.moveTo(x, y) : ecgCtx.lineTo(x, y);
+  }
+  ecgCtx.stroke();
+  ecgCtx.shadowBlur = 0;
+}
+
+function resizeECG() {
+  const wrap = document.querySelector('.ecg-wrap');
+  const label = document.querySelector('.ecg-label');
+  ecgCanvas.width = wrap.offsetWidth - label.offsetWidth - 32;
+  ecgCanvas.height = 28;
+  ecgData = new Array(ecgCanvas.width).fill(0);
+}
+
+function tickECG() {
+  ecgData.push(ecgWaveform(ecgX++));
+  if (ecgData.length > ecgCanvas.width) ecgData.shift();
+  drawECG();
+}
+
+// ── GAME STATE ──
+let timerSeconds = 600;
+let timerInterval = null;
+let score = 0;
+let gameActive = false;
+let isThinking = false;
+let conversationHistory = [];
+let checklistItems = [];
+let vitals = { hr: 138, bp: '88/54', o2: 91, rr: 26 };
+
+const SYSTEM_PROMPT = `You are the AI running a medical emergency simulation game called "Code Blue." You play multiple roles simultaneously:
+
+1. NURSE: Responds to orders, reports findings, gives lab results and clinical updates
+2. PATIENT: If asked to examine or speak with patient, responds appropriately  
+3. MONITOR: Reports changes in vitals when clinically appropriate
+
+THE SCENARIO:
+Patient: Margaret Chen, 67F
+Admitted for elective hip replacement surgery 2 days ago
+Post-op day 2, was doing well until tonight
+
+THE ACTUAL DIAGNOSIS (hidden from player): Pulmonary Embolism
+- She developed acute PE from DVT post-surgery
+- Risk factors: post-surgical, immobility, age 67, no prophylaxis documented
+
+VITALS ON ARRIVAL: HR 138, BP 88/54, SpO2 91%, RR 26
+
+CLINICAL FINDINGS TO REVEAL PROGRESSIVELY:
+- Tachycardia, hypotension (obstructive shock)
+- Right calf swelling and tenderness (DVT source)
+- Pleuritic chest pain, sudden onset dyspnea
+- ECG: sinus tachycardia, S1Q3T3 pattern, right heart strain
+- CXR: Hampton's hump, Westermark sign (subtle)
+- Labs: Trop mildly elevated, BNP elevated, D-dimer very elevated >10
+- ABG: Hypoxia, respiratory alkalosis
+- CTPA: Saddle PE with bilateral filling defects, RV dilation
+- Echo (if ordered): RV strain, D-sign, McConnell's sign
+
+GAME RULES:
+- Respond ONLY as the nurse/monitor/patient in character. Keep responses concise (2-4 sentences max per response).
+- Use medical terminology appropriately but also plain language
+- Reveal findings progressively - don't give everything at once
+- If player orders appropriate treatment (anticoagulation, O2, fluids, CTPA), acknowledge and update
+- Track what's been done - don't repeat completed actions
+- If player diagnoses PE correctly, congratulate and end with "DIAGNOSIS CONFIRMED"
+- If player orders something dangerous or clearly wrong, note the consequence
+- Keep urgency high - remind of deteriorating state if player is slow
+- Format: Start each response with [NURSE], [PATIENT], or [MONITOR] tag
+- Never reveal the diagnosis unless the player correctly identifies it
+- Score hints: +points for each correct action (O2, IV access, labs, fluids, CTPA, anticoagulation)
+
+Current conversation history will be provided. Stay in character always.`;
+
+// ── CHECKLIST SETUP ──
+const checklistDefs = [
+  { id: 'o2', text: 'Oxygen supplementation', keywords: ['oxygen', 'o2', 'nrb', 'nasal', 'rebreather', 'sat'] },
+  { id: 'iv', text: 'IV access established', keywords: ['iv', 'access', 'line', 'cannula', 'peripheral'] },
+  { id: 'labs', text: 'Stat labs ordered', keywords: ['labs', 'blood', 'cbc', 'troponin', 'bnp', 'd-dimer', 'abg', 'coagulation'] },
+  { id: 'ecg', text: '12-lead ECG obtained', keywords: ['ecg', 'ekg', '12-lead', 'electrocardiogram'] },
+  { id: 'fluids', text: 'IV fluids initiated', keywords: ['fluid', 'saline', 'ns', 'bolus', 'lactated'] },
+  { id: 'cxr', text: 'Chest X-ray ordered', keywords: ['cxr', 'chest x', 'x-ray', 'xray', 'radiograph'] },
+  { id: 'ctpa', text: 'CTPA ordered', keywords: ['ctpa', 'ct pulmonary', 'ct chest', 'computed tomography', 'ct angio'] },
+  { id: 'anticoag', text: 'Anticoagulation initiated', keywords: ['heparin', 'anticoag', 'lovenox', 'enoxaparin', 'thrombolysis', 'tpa', 'alteplase', 'warfarin', 'rivaroxaban', 'apixaban'] },
+];
+
+function renderChecklist() {
+  const el = document.getElementById('checklist');
+  el.innerHTML = checklistDefs.map(item => `
+    <div class="check-item" id="chk-${item.id}">
+      <div class="check-box"></div>
+      <span>${item.text}</span>
+    </div>
+  `).join('');
+}
+
+function checkAction(text) {
+  const lower = text.toLowerCase();
+  let gained = 0;
+  checklistDefs.forEach(item => {
+    const el = document.getElementById(`chk-${item.id}`);
+    if (!el.classList.contains('done')) {
+      if (item.keywords.some(k => lower.includes(k))) {
+        el.classList.add('done');
+        gained += 15;
+        checklistItems.push(item.id);
+      }
+    }
+  });
+  addScore(gained);
+}
+
+// ── TIMER ──
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      endGame(false, 'Time expired. The patient deteriorated without a confirmed diagnosis.');
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  const el = document.getElementById('timerDisplay');
+  el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  el.className = timerSeconds > 300 ? '' : timerSeconds > 120 ? 'urgent' : 'critical';
+}
+
+// ── VITALS UPDATE ──
+function updateVitals(hrVal, bpVal, o2Val, rrVal, hrClass, o2Class, rrClass) {
+  document.getElementById('vHR').textContent = hrVal;
+  document.getElementById('vHR').className = `vital-value ${hrClass}`;
+  document.getElementById('vBP').textContent = bpVal;
+  document.getElementById('vO2').textContent = o2Val;
+  document.getElementById('vO2').className = `vital-value ${o2Class}`;
+  document.getElementById('vRR').textContent = rrVal;
+  document.getElementById('vRR').className = `vital-value ${rrClass}`;
+}
+
+// ── SCORE ──
+function addScore(pts) {
+  score += pts;
+  document.getElementById('scoreDisplay').textContent = score;
+}
+
+// ── MESSAGES ──
+function addMessage(sender, type, text) {
+  const log = document.getElementById('chatLog');
+  const typing = document.getElementById('typingIndicator');
+
+  const msg = document.createElement('div');
+  msg.className = 'msg';
+  msg.innerHTML = `
+    <div class="msg-sender ${type}">${sender}</div>
+    <div class="msg-body ${type}">${text}</div>
+  `;
+  log.insertBefore(msg, typing);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showTyping(show) {
+  document.getElementById('typingIndicator').className = show ? 'typing-indicator show' : 'typing-indicator';
+  if (show) document.getElementById('chatLog').scrollTop = document.getElementById('chatLog').scrollHeight;
+}
+
+// ── AI CALL ──
+async function callAI(userMessage) {
+  conversationHistory.push({ role: 'user', content: userMessage });
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: conversationHistory
+    })
+  });
+
+  const data = await response.json();
+  const reply = data.content?.[0]?.text || 'No response received.';
+  conversationHistory.push({ role: 'assistant', content: reply });
+  return reply;
+}
+
+function parseAndDisplayReply(reply) {
+  // Check for diagnosis confirmed
+  if (reply.includes('DIAGNOSIS CONFIRMED')) {
+    addScore(100);
+    setTimeout(() => endGame(true, reply.replace('DIAGNOSIS CONFIRMED', '').trim()), 800);
+    return;
+  }
+
+  // Parse role tags
+  const lines = reply.split('\n').filter(l => l.trim());
+  lines.forEach(line => {
+    if (line.startsWith('[NURSE]')) {
+      addMessage('NURSE · Room 4', 'nurse', line.replace('[NURSE]', '').trim());
+    } else if (line.startsWith('[PATIENT]')) {
+      addMessage('PATIENT · M. Chen', 'ai', line.replace('[PATIENT]', '').trim());
+    } else if (line.startsWith('[MONITOR]')) {
+      addMessage('MONITOR', 'monitor', line.replace('[MONITOR]', '').trim());
+      // Simulate vitals improvement if O2/fluids given
+      if (checklistItems.includes('o2') && checklistItems.includes('fluids')) {
+        updateVitals(118, '94/62', 95, 22, 'abnormal', 'abnormal', 'abnormal');
+      }
+    } else if (line.trim()) {
+      addMessage('NURSE · Room 4', 'nurse', line.trim());
+    }
+  });
+}
+
+// ── SEND COMMAND ──
+async function sendCommand() {
+  if (isThinking || !gameActive) return;
+  const input = document.getElementById('cmdInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+  isThinking = true;
+
+  addMessage('YOU', 'player', text);
+  checkAction(text);
+
+  showTyping(true);
+
+  try {
+    const reply = await callAI(text);
+    showTyping(false);
+    parseAndDisplayReply(reply);
+    addScore(5); // base score for any action
+  } catch (err) {
+    showTyping(false);
+    addMessage('SYSTEM', 'system', 'Communication error. Try again.');
+  }
+
+  isThinking = false;
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function quickAction(text) {
+  document.getElementById('cmdInput').value = text;
+  sendCommand();
+}
+
+// ── END GAME ──
+function endGame(survived, explanation) {
+  gameActive = false;
+  clearInterval(timerInterval);
+
+  const doneCount = checklistItems.length;
+  const timeBonus = Math.floor(timerSeconds / 10);
+  const finalScore = score + timeBonus;
+
+  const endScreen = document.getElementById('endScreen');
+  document.getElementById('endStatus').textContent = survived ? 'PATIENT STABLE' : 'CODE CALLED';
+  document.getElementById('endStatus').className = `end-status ${survived ? 'survived' : 'failed'}`;
+  document.getElementById('endDiagnosis').textContent = 'Diagnosis: Pulmonary Embolism';
+  document.getElementById('endExplanation').innerHTML = survived
+    ? `Well done. You identified a massive saddle PE presenting as obstructive shock post-operatively. Key findings: tachycardia, hypotension, hypoxia, pleuritic pain, right calf DVT, and S1Q3T3 on ECG. Anticoagulation and supportive care were the correct approach. Time bonus: +${timeBonus} pts.`
+    : `The patient had a massive pulmonary embolism — the leading cause of preventable post-surgical death. Key missed findings: pleuritic chest pain, right calf swelling (DVT source), S1Q3T3 on ECG, and elevated D-dimer. CTPA would have been diagnostic. ${explanation}`;
+  document.getElementById('endScore').textContent = finalScore;
+  endScreen.className = 'show';
+}
+
+// ── START GAME ──
+async function startGame() {
+  document.getElementById('introScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+
+  gameActive = true;
+  document.getElementById('patientName').textContent = 'Margaret Chen';
+  document.getElementById('patientMeta').textContent = '67F · Post-op Day 2 · Hip Replacement';
+
+  renderChecklist();
+  resizeECG();
+  setInterval(tickECG, 30);
+  startTimer();
+
+  // Initial system message
+  addMessage('SYSTEM', 'system', '⚠ CODE BLUE — Room 4. Patient unresponsive to nurse call. Monitor alarming. You are the on-call resident.');
+
+  showTyping(true);
+  try {
+    const opening = await callAI("I'm responding to the code blue. What's the situation?");
+    showTyping(false);
+    parseAndDisplayReply(opening);
+  } catch(e) {
+    showTyping(false);
+    addMessage('NURSE · Room 4', 'nurse', "Doctor, thank god you're here. Mrs. Chen suddenly became short of breath and her pressure dropped. She's been on the floor since surgery 2 days ago. Monitor shows HR 138, BP 88/54, sats 91%.");
+  }
+
+  document.getElementById('cmdInput').focus();
+  document.getElementById('cmdInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendCommand();
+  });
+}
+
+window.addEventListener('resize', resizeECG);
+</script>
+</body>
+</html>
