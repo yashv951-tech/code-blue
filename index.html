@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CODE BLUE</title>
+<title>CODE BLUE · ACLS</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,6 +26,8 @@
   --amber-dim: #443300;
   --cyan: #00ccff;
   --cyan-dim: #003344;
+  --purple: #aa66ff;
+  --purple-dim: #2a1144;
   --mono: 'Share Tech Mono', monospace;
   --display: 'Bebas Neue', sans-serif;
   --body: 'DM Sans', sans-serif;
@@ -36,48 +38,82 @@ body {
   color: var(--text);
   font-family: var(--body);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Scanline overlay */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
   pointer-events: none;
-  z-index: 100;
+  z-index: 200;
 }
 
-/* ── INTRO SCREEN ── */
-#introScreen {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes msgIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes typingDot { 0%,60%,100% { opacity: 0.2; transform: scale(0.8); } 30% { opacity: 1; transform: scale(1.1); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── SCREEN SYSTEM ── */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; animation: fadeIn 0.3s ease; }
+#gameScreen.active { height: 100vh; overflow: hidden; }
+
+/* ── SHARED NAV ── */
+.nav-bar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.8rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-logo {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+  color: var(--red);
+  cursor: pointer;
+}
+.nav-logo span { color: var(--text-dim); font-size: 0.8rem; letter-spacing: 0.2em; }
+.nav-links { display: flex; gap: 0.5rem; margin-left: auto; }
+.nav-btn {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.nav-btn:hover, .nav-btn.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+/* ── HOME SCREEN ── */
+#homeScreen {
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  text-align: center;
   gap: 0;
 }
 
-.intro-alert {
+.home-alert {
   font-family: var(--mono);
   font-size: 0.65rem;
   letter-spacing: 0.3em;
   color: var(--red);
   text-transform: uppercase;
   margin-bottom: 1rem;
-  animation: blink 1s step-end infinite;
+  animation: blink 1.2s step-end infinite;
 }
 
-@keyframes blink { 50% { opacity: 0; } }
-
-.intro-title {
+.home-title {
   font-family: var(--display);
   font-size: clamp(4rem, 12vw, 7rem);
   color: var(--text);
@@ -85,85 +121,512 @@ body::before {
   line-height: 1;
   margin-bottom: 0.2rem;
 }
+.home-title span { color: var(--red); }
 
-.intro-title span { color: var(--red); }
-
-.intro-sub {
+.home-sub {
   font-family: var(--mono);
   font-size: 0.7rem;
   color: var(--text-dim);
-  letter-spacing: 0.2em;
-  margin-bottom: 3rem;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
+  margin-bottom: 3.5rem;
 }
 
-.intro-scenario {
-  background: var(--panel);
-  border: 1px solid var(--border2);
-  border-left: 3px solid var(--red);
-  padding: 1.2rem 1.5rem;
-  max-width: 480px;
-  width: 90%;
-  margin-bottom: 2rem;
-  font-size: 0.85rem;
-  line-height: 1.7;
-  color: var(--text);
-  font-weight: 300;
-}
-
-.intro-scenario strong { color: var(--amber); font-weight: 500; }
-
-.intro-rules {
+.home-cards {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-.rule-chip {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.home-card {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  padding: 2rem 2.5rem;
+  width: 260px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  text-align: left;
 }
 
-.rule-chip::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--cyan);
+.home-card:hover { transform: translateY(-3px); }
+.home-card.learn:hover { border-color: var(--cyan); }
+.home-card.practice:hover { border-color: var(--red); }
+
+.home-card-icon {
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
+}
+
+.home-card-title {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+.home-card.learn .home-card-title { color: var(--cyan); }
+.home-card.practice .home-card-title { color: var(--red); }
+
+.home-card-desc {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.home-footer {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── LEARN SCREEN ── */
+.screen-header {
+  padding: 2rem 2rem 1rem;
+}
+.screen-title {
+  font-family: var(--display);
+  font-size: 2.5rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+}
+.screen-title span { color: var(--cyan); }
+.screen-desc {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  max-width: 600px;
+}
+
+.algo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  margin: 0 2rem 2rem;
+}
+
+.algo-card {
+  background: var(--panel);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.algo-card:hover { background: var(--panel2); }
+
+.algo-card-accent {
+  width: 3px;
+  height: 28px;
+  margin-bottom: 0.8rem;
+}
+
+.algo-card-title {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.algo-card-desc {
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.algo-card-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.algo-tag {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 1px;
+}
+
+.drug-ref-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 2rem 2rem;
+  padding: 1rem 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  width: fit-content;
+  transition: border-color 0.15s;
+}
+.drug-ref-btn:hover { border-color: var(--amber); }
+.drug-ref-btn-title { font-family: var(--display); font-size: 1.2rem; letter-spacing: 0.05em; color: var(--amber); }
+.drug-ref-btn-desc { font-size: 0.75rem; color: var(--text-dim); font-weight: 300; }
+
+/* ── ALGORITHM DETAIL SCREEN ── */
+#algoScreen .screen-header { border-bottom: 1px solid var(--border); margin-bottom: 0; }
+
+.algo-detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.algo-flowchart-area {
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+.algo-flowchart-area::-webkit-scrollbar { width: 4px; }
+.algo-flowchart-area::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.algo-sidebar {
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.algo-sidebar::-webkit-scrollbar { width: 3px; }
+.algo-sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* Flowchart */
+.flowchart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.flow-node {
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.flow-node.action {
+  background: var(--cyan-dim);
+  border: 1px solid var(--cyan);
+  border-left: 3px solid var(--cyan);
+  color: var(--text);
+}
+
+.flow-node.drug {
+  background: var(--amber-dim);
+  border: 1px solid var(--amber);
+  border-left: 3px solid var(--amber);
+  color: var(--text);
+}
+
+.flow-node.decision {
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--purple);
+  color: var(--text);
+}
+
+.flow-node.success {
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  border-left: 3px solid var(--green);
+  color: var(--green);
+  font-weight: 500;
+}
+
+.flow-node.danger {
+  background: var(--red-glow);
+  border: 1px solid var(--red);
+  border-left: 3px solid var(--red);
+  color: var(--text);
+}
+
+.flow-node.highlight {
+  transform: scale(1.01);
+  box-shadow: 0 0 12px rgba(0,204,255,0.3);
+}
+
+.flow-node.dim { opacity: 0.35; }
+
+.flow-step-num {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  color: var(--border2);
+  font-size: 1.2rem;
   flex-shrink: 0;
 }
 
-.btn-start {
-  font-family: var(--display);
-  font-size: 1.4rem;
-  letter-spacing: 0.15em;
-  background: var(--red);
-  color: #fff;
-  border: none;
-  padding: 0.7rem 3rem;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+.flow-branch-wrap {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  margin: 0;
 }
 
-.btn-start:hover { background: #ff5555; }
-.btn-start:active { transform: scale(0.97); }
-
-/* ── MAIN GAME LAYOUT ── */
-#gameScreen {
-  display: none;
+.flow-branch {
+  background: var(--bg);
+  padding: 0.8rem;
+  display: flex;
   flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+
+.flow-branch-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  margin-bottom: 0.8rem;
+  border-radius: 1px;
+}
+
+.flow-branch-label.yes { background: var(--green-dim); color: var(--green); }
+.flow-branch-label.no { background: var(--red-glow); color: var(--red); }
+
+.flow-branch .flow-node { width: 100%; }
+
+/* Step controls */
+.step-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.step-btn {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.4rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.step-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.step-btn.primary { background: var(--cyan); color: #000; border-color: var(--cyan); font-weight: 600; }
+.step-btn.primary:hover { background: #33ddff; }
+
+.step-counter {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+/* Drug reference in algo sidebar */
+.drug-card {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--amber);
+  padding: 0.7rem 0.8rem;
+}
+
+.drug-name {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--amber);
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.05em;
+}
+
+.drug-dose {
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.drug-indication {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+}
+
+.sidebar-section-title {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── DRUG REFERENCE SCREEN ── */
+.drug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem 2rem 2rem;
+}
+
+.drug-full-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--amber);
+  padding: 1.2rem;
+}
+
+.drug-full-name {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+  color: var(--amber);
+  margin-bottom: 0.2rem;
+}
+
+.drug-full-class {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.8rem;
+}
+
+.drug-full-dose {
+  font-size: 0.8rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--text);
+  border-left: 2px solid var(--border2);
+  padding-left: 0.7rem;
+}
+
+.drug-full-note {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* ── PRACTICE SCREEN ── */
+.case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  margin: 1rem 2rem 2rem;
+}
+
+.case-card {
+  background: var(--panel);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.case-card:hover { background: var(--panel2); }
+
+.case-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.case-card-rhythm {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.case-card-title {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+}
+
+.case-card-desc {
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.case-card-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 0.3rem;
+}
+
+.case-vital-chip {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: center;
+}
+.case-vital-label { font-family: var(--mono); font-size: 0.48rem; color: var(--text-muted); text-transform: uppercase; }
+.case-vital-val { font-family: var(--display); font-size: 0.9rem; letter-spacing: 0.03em; }
+.case-vital-val.red { color: var(--red); }
+.case-vital-val.amber { color: var(--amber); }
+.case-vital-val.green { color: var(--green); }
+
+.difficulty-badge {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 1px;
+  align-self: flex-start;
+}
+.difficulty-badge.intermediate { background: var(--amber-dim); color: var(--amber); }
+.difficulty-badge.advanced { background: var(--red-glow); color: var(--red); }
+.difficulty-badge.beginner { background: var(--green-dim); color: var(--green); }
+
+/* ── GAME SCREEN ── */
+#gameScreen {
   height: 100vh;
   overflow: hidden;
 }
 
-/* Top bar */
 .topbar {
   display: flex;
   align-items: center;
@@ -174,50 +637,18 @@ body::before {
   flex-shrink: 0;
 }
 
-.topbar-title {
-  font-family: var(--display);
-  font-size: 1.4rem;
-  letter-spacing: 0.1em;
-  color: var(--red);
-}
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
+.topbar-title { font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--red); }
+.topbar-case { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+.topbar-exit { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; background: transparent; border: 1px solid var(--border2); color: var(--text-muted); cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+.topbar-exit:hover { border-color: var(--red); color: var(--red); }
 
-.topbar-case {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-/* Timer */
-.timer-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.timer-label {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-#timerDisplay {
-  font-family: var(--display);
-  font-size: 1.6rem;
-  letter-spacing: 0.05em;
-  color: var(--green);
-  min-width: 60px;
-  text-align: right;
-  transition: color 0.3s;
-}
-
+.timer-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.timer-label { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+#timerDisplay { font-family: var(--display); font-size: 1.6rem; letter-spacing: 0.05em; color: var(--green); min-width: 60px; text-align: right; transition: color 0.3s; }
 #timerDisplay.urgent { color: var(--amber); }
 #timerDisplay.critical { color: var(--red); animation: blink 0.5s step-end infinite; }
 
-/* Monitor row */
 .monitor-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -227,41 +658,14 @@ body::before {
   flex-shrink: 0;
 }
 
-.vital-box {
-  background: var(--panel);
-  padding: 0.5rem 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.vital-label {
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  color: var(--text-muted);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.vital-value {
-  font-family: var(--display);
-  font-size: 1.5rem;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  transition: color 0.5s;
-}
-
+.vital-box { background: var(--panel); padding: 0.5rem 0.8rem; display: flex; flex-direction: column; gap: 2px; }
+.vital-label { font-family: var(--mono); font-size: 0.5rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; }
+.vital-value { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.05em; line-height: 1; transition: color 0.5s; }
 .vital-value.normal { color: var(--green); }
 .vital-value.abnormal { color: var(--amber); }
 .vital-value.critical { color: var(--red); }
+.vital-unit { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); }
 
-.vital-unit {
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  color: var(--text-dim);
-}
-
-/* ECG line */
 .ecg-wrap {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -273,448 +677,252 @@ body::before {
   flex-shrink: 0;
   position: relative;
 }
+.ecg-label { font-family: var(--mono); font-size: 0.5rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; margin-right: 1rem; flex-shrink: 0; }
+canvas#ecgCanvas { flex: 1; height: 28px; }
 
-.ecg-label {
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  color: var(--text-muted);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-right: 1rem;
-  flex-shrink: 0;
-}
-
-canvas#ecgCanvas {
-  flex: 1;
-  height: 28px;
-}
-
-/* Main content area */
 .content-area {
   display: grid;
   grid-template-columns: 1fr 280px;
   flex: 1;
   overflow: hidden;
-  gap: 0;
 }
 
-/* Chat / log panel */
-.chat-panel {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.chat-log {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  scroll-behavior: smooth;
-}
-
+.chat-panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+.chat-log { flex: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; scroll-behavior: smooth; }
 .chat-log::-webkit-scrollbar { width: 4px; }
-.chat-log::-webkit-scrollbar-track { background: transparent; }
 .chat-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-.msg {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  animation: msgIn 0.25s ease;
-}
-
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.msg-sender {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
+.msg { display: flex; flex-direction: column; gap: 3px; animation: msgIn 0.25s ease; }
+.msg-sender { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; }
 .msg-sender.system { color: var(--red); }
 .msg-sender.nurse { color: var(--cyan); }
 .msg-sender.monitor { color: var(--green); }
 .msg-sender.ai { color: var(--amber); }
 .msg-sender.player { color: var(--text-dim); }
 
-.msg-body {
-  font-size: 0.82rem;
-  line-height: 1.6;
-  font-weight: 300;
-  padding: 0.5rem 0.7rem;
-  border-radius: 2px;
-  max-width: 92%;
-}
-
-.msg-body.system {
-  background: var(--red-glow);
-  border-left: 2px solid var(--red);
-  color: var(--text);
-}
-
-.msg-body.nurse {
-  background: var(--cyan-dim);
-  border-left: 2px solid var(--cyan);
-  color: var(--text);
-}
-
-.msg-body.monitor {
-  background: var(--green-dim);
-  border-left: 2px solid var(--green);
-  color: var(--text);
-}
-
-.msg-body.ai {
-  background: var(--amber-dim);
-  border-left: 2px solid var(--amber);
-  color: var(--text);
-}
-
-.msg-body.player {
-  background: var(--panel2);
-  border-left: 2px solid var(--border2);
-  color: var(--text-dim);
-  align-self: flex-end;
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 0.75rem;
-}
-
+.msg-body { font-size: 0.82rem; line-height: 1.6; font-weight: 300; padding: 0.5rem 0.7rem; border-radius: 2px; max-width: 92%; }
+.msg-body.system { background: var(--red-glow); border-left: 2px solid var(--red); color: var(--text); }
+.msg-body.nurse { background: var(--cyan-dim); border-left: 2px solid var(--cyan); color: var(--text); }
+.msg-body.monitor { background: var(--green-dim); border-left: 2px solid var(--green); color: var(--text); }
+.msg-body.ai { background: var(--amber-dim); border-left: 2px solid var(--amber); color: var(--text); }
+.msg-body.player { background: var(--panel2); border-left: 2px solid var(--border2); color: var(--text-dim); align-self: flex-end; margin-left: auto; font-family: var(--mono); font-size: 0.75rem; }
 .msg-body strong { font-weight: 500; }
 .msg-body em { color: var(--amber); font-style: normal; }
 
-/* Typing indicator */
-.typing-indicator {
-  display: none;
-  gap: 4px;
-  align-items: center;
-  padding: 0.4rem 0.7rem;
-}
-
+.typing-indicator { display: none; gap: 4px; align-items: center; padding: 0.4rem 0.7rem; }
 .typing-indicator.show { display: flex; }
-.typing-indicator span {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--amber);
-  animation: typingDot 1.2s ease infinite;
-}
+.typing-indicator span { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); animation: typingDot 1.2s ease infinite; }
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typingDot {
-  0%,60%,100% { opacity: 0.2; transform: scale(0.8); }
-  30% { opacity: 1; transform: scale(1.1); }
-}
 
-/* Input row */
-.input-area {
-  border-top: 1px solid var(--border);
-  padding: 0.6rem 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  flex-shrink: 0;
-  background: var(--panel);
-}
-
-.quick-actions {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.quick-btn {
-  font-family: var(--mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.05em;
-  padding: 3px 8px;
-  background: transparent;
-  border: 1px solid var(--border2);
-  color: var(--text-dim);
-  cursor: pointer;
-  border-radius: 2px;
-  text-transform: uppercase;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  white-space: nowrap;
-}
-
-.quick-btn:hover {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  background: var(--cyan-dim);
-}
-
-.cmd-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.cmd-prompt {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--green);
-  flex-shrink: 0;
-}
-
-input#cmdInput {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  color: var(--text);
-  caret-color: var(--green);
-}
-
+.input-area { border-top: 1px solid var(--border); padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; flex-shrink: 0; background: var(--panel); }
+.quick-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.quick-btn { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.05em; padding: 3px 8px; background: transparent; border: 1px solid var(--border2); color: var(--text-dim); cursor: pointer; border-radius: 2px; text-transform: uppercase; transition: all 0.15s; white-space: nowrap; }
+.quick-btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+.cmd-row { display: flex; gap: 0.5rem; align-items: center; }
+.cmd-prompt { font-family: var(--mono); font-size: 0.75rem; color: var(--green); flex-shrink: 0; }
+input#cmdInput { flex: 1; background: transparent; border: none; outline: none; font-family: var(--mono); font-size: 0.82rem; color: var(--text); caret-color: var(--green); }
 input#cmdInput::placeholder { color: var(--text-muted); }
-
-.btn-send {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  background: var(--red);
-  color: #fff;
-  border: none;
-  padding: 0.35rem 0.8rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: background 0.15s;
-  border-radius: 1px;
-}
-
+.btn-send { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em; background: var(--red); color: #fff; border: none; padding: 0.35rem 0.8rem; cursor: pointer; text-transform: uppercase; transition: background 0.15s; border-radius: 1px; }
 .btn-send:hover { background: #ff5555; }
 .btn-send:disabled { background: var(--red-dim); cursor: default; }
 
-/* Right sidebar */
-.sidebar {
-  background: var(--panel);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+.sidebar { background: var(--panel); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-section { border-bottom: 1px solid var(--border); padding: 0.7rem 0.8rem; }
+.sidebar-title { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+.patient-name { font-family: var(--display); font-size: 1.2rem; letter-spacing: 0.05em; color: var(--text); margin-bottom: 2px; }
+.patient-meta { font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.05em; }
 
-.sidebar-section {
-  border-bottom: 1px solid var(--border);
-  padding: 0.7rem 0.8rem;
-}
-
-.sidebar-title {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-}
-
-.patient-name {
-  font-family: var(--display);
-  font-size: 1.2rem;
-  letter-spacing: 0.05em;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-
-.patient-meta {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  color: var(--text-dim);
-  letter-spacing: 0.05em;
-}
-
-.checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.7rem 0.8rem;
-}
-
+.checklist { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; overflow-y: auto; padding: 0.7rem 0.8rem; }
 .checklist::-webkit-scrollbar { width: 3px; }
 .checklist::-webkit-scrollbar-thumb { background: var(--border); }
-
-.check-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 300;
-  color: var(--text-dim);
-  line-height: 1.4;
-  transition: color 0.3s;
-}
-
-.check-box {
-  width: 12px; height: 12px;
-  border: 1px solid var(--border2);
-  border-radius: 1px;
-  flex-shrink: 0;
-  margin-top: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.3s, border-color 0.3s;
-}
-
+.check-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.72rem; font-weight: 300; color: var(--text-dim); line-height: 1.4; transition: color 0.3s; }
+.check-box { width: 12px; height: 12px; border: 1px solid var(--border2); border-radius: 1px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
 .check-item.done { color: var(--green); }
-.check-item.done .check-box {
-  background: var(--green);
-  border-color: var(--green);
-}
+.check-item.done .check-box { background: var(--green); border-color: var(--green); }
+.check-item.done .check-box::after { content: '✓'; font-size: 8px; color: #000; font-weight: 700; }
 
-.check-item.done .check-box::after {
-  content: '✓';
-  font-size: 8px;
-  color: #000;
-  font-weight: 700;
-}
+.score-wrap { padding: 0.7rem 0.8rem; border-top: 1px solid var(--border); margin-top: auto; }
+.score-label { font-family: var(--mono); font-size: 0.55rem; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 0.3rem; }
+.score-value { font-family: var(--display); font-size: 2rem; color: var(--cyan); letter-spacing: 0.05em; }
 
-.score-wrap {
-  padding: 0.7rem 0.8rem;
-  border-top: 1px solid var(--border);
-  margin-top: auto;
-}
-
-.score-label {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  color: var(--text-muted);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 0.3rem;
-}
-
-.score-value {
-  font-family: var(--display);
-  font-size: 2rem;
-  color: var(--cyan);
-  letter-spacing: 0.05em;
-}
-
-/* End screen */
+/* ── END SCREEN ── */
 #endScreen {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(8,12,15,0.95);
-  z-index: 60;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+  text-align: center;
   gap: 1rem;
 }
 
-#endScreen.show { display: flex; }
-
-.end-status {
-  font-family: var(--display);
-  font-size: clamp(3rem, 8vw, 5rem);
-  letter-spacing: 0.1em;
-}
-
+.end-status { font-family: var(--display); font-size: clamp(3rem, 8vw, 5rem); letter-spacing: 0.1em; }
 .end-status.survived { color: var(--green); }
 .end-status.failed { color: var(--red); }
-
-.end-diagnosis {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.end-explanation {
-  max-width: 480px;
-  text-align: center;
-  font-size: 0.85rem;
-  line-height: 1.7;
-  font-weight: 300;
-  color: var(--text);
-  padding: 1rem 1.5rem;
-  background: var(--panel);
-  border: 1px solid var(--border2);
-}
-
-.end-score {
-  font-family: var(--display);
-  font-size: 3rem;
-  color: var(--cyan);
-  letter-spacing: 0.1em;
-}
-
-.end-score-label {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-top: -0.5rem;
-}
-
-.btn-restart {
-  font-family: var(--display);
-  font-size: 1.2rem;
-  letter-spacing: 0.15em;
-  background: transparent;
-  border: 1px solid var(--text-dim);
-  color: var(--text);
-  padding: 0.6rem 2.5rem;
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
-}
-
+.end-diagnosis { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+.end-explanation { max-width: 520px; text-align: center; font-size: 0.85rem; line-height: 1.7; font-weight: 300; color: var(--text); padding: 1rem 1.5rem; background: var(--panel); border: 1px solid var(--border2); }
+.end-score { font-family: var(--display); font-size: 3rem; color: var(--cyan); letter-spacing: 0.1em; }
+.end-score-label { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.2em; text-transform: uppercase; margin-top: -0.5rem; }
+.end-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn-restart { font-family: var(--display); font-size: 1.2rem; letter-spacing: 0.15em; background: transparent; border: 1px solid var(--text-dim); color: var(--text); padding: 0.6rem 2rem; cursor: pointer; transition: all 0.2s; }
 .btn-restart:hover { border-color: var(--cyan); color: var(--cyan); }
-
-/* Loading dots */
-.loading {
-  display: inline-flex;
-  gap: 3px;
-}
-.loading span {
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--amber);
-  animation: typingDot 1s ease infinite;
-}
-.loading span:nth-child(2) { animation-delay: 0.15s; }
-.loading span:nth-child(3) { animation-delay: 0.3s; }
+.btn-restart.primary { border-color: var(--red); color: var(--red); }
+.btn-restart.primary:hover { background: var(--red); color: #fff; }
 </style>
 </head>
 <body>
 
-<!-- INTRO -->
-<div id="introScreen">
-  <div class="intro-alert">⚠ Code Blue Activated</div>
-  <div class="intro-title">CODE <span>BLUE</span></div>
-  <div class="intro-sub">Medical Emergency Simulation</div>
-  <div class="intro-scenario">
-    You are the <strong>on-call resident</strong>. It's 2:47 AM. The nurse has just called a Code Blue on a patient in Room 4. The monitor is alarming. You have <strong>10 minutes</strong> to stabilize the patient and identify the diagnosis before it's too late.<br><br>
-    Type orders in plain English. Ask questions. Think fast.
+<!-- ═══════════════════════ HOME ═══════════════════════ -->
+<div id="homeScreen" class="screen active">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:2rem;">
+    <div class="home-alert">⚠ Advanced Cardiac Life Support Training</div>
+    <div class="home-title">CODE <span>BLUE</span></div>
+    <div class="home-sub">ACLS Learning Platform · For Medical Students</div>
+    <div class="home-cards">
+      <div class="home-card learn" onclick="showScreen('learnScreen')">
+        <div class="home-card-icon">📋</div>
+        <div class="home-card-title">Learn</div>
+        <div class="home-card-desc">Study ACLS algorithms step-by-step. Interactive flowcharts, drug dosing references, and decision trees for cardiac arrest, bradycardia, tachycardia, and post-ROSC care.</div>
+      </div>
+      <div class="home-card practice" onclick="showScreen('practiceScreen')">
+        <div class="home-card-icon">🏥</div>
+        <div class="home-card-title">Practice</div>
+        <div class="home-card-desc">AI-powered simulation cases. Step into the resuscitation room and manage real ACLS scenarios with live vitals, a virtual nurse, and a 10-minute clock.</div>
+      </div>
+    </div>
+    <div class="home-footer">Based on AHA ACLS 2020 Guidelines</div>
   </div>
-  <div class="intro-rules">
-    <div class="rule-chip">10 minute countdown</div>
-    <div class="rule-chip">Type any order</div>
-    <div class="rule-chip">AI plays nurse + patient</div>
-    <div class="rule-chip">Find the diagnosis</div>
-  </div>
-  <button class="btn-start" onclick="startGame()">Enter Room 4</button>
 </div>
 
-<!-- GAME -->
-<div id="gameScreen">
+<!-- ═══════════════════════ LEARN ═══════════════════════ -->
+<div id="learnScreen" class="screen">
+  <div class="nav-bar">
+    <div class="nav-logo" onclick="showScreen('homeScreen')">CODE <span>BLUE</span></div>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="showScreen('learnScreen')">Learn</button>
+      <button class="nav-btn" onclick="showScreen('practiceScreen')">Practice</button>
+    </div>
+  </div>
+  <div class="screen-header">
+    <div class="screen-title">ACLS <span>Algorithms</span></div>
+    <div class="screen-desc">Select an algorithm to study interactively. Each flowchart walks you through the decision points, interventions, and drug doses used in real resuscitations.</div>
+  </div>
+  <div class="algo-grid">
+    <div class="algo-card" onclick="showAlgorithm('cardiac-arrest')">
+      <div class="algo-card-accent" style="background:var(--red);"></div>
+      <div class="algo-card-title" style="color:var(--red);">Cardiac Arrest</div>
+      <div class="algo-card-desc">VF/Pulseless VT and PEA/Asystole. CPR cycles, defibrillation, epinephrine, amiodarone, and the H's &amp; T's.</div>
+      <div class="algo-card-tags">
+        <span class="algo-tag" style="background:var(--red-glow);color:var(--red);">Shockable</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">Non-shockable</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">CPR</span>
+      </div>
+    </div>
+    <div class="algo-card" onclick="showAlgorithm('bradycardia')">
+      <div class="algo-card-accent" style="background:var(--cyan);"></div>
+      <div class="algo-card-title" style="color:var(--cyan);">Bradycardia</div>
+      <div class="algo-card-desc">Symptomatic bradycardia with hemodynamic instability. Atropine, transcutaneous pacing, dopamine infusion.</div>
+      <div class="algo-card-tags">
+        <span class="algo-tag" style="background:var(--cyan-dim);color:var(--cyan);">HR &lt; 50</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">Pacing</span>
+      </div>
+    </div>
+    <div class="algo-card" onclick="showAlgorithm('tachycardia')">
+      <div class="algo-card-accent" style="background:var(--amber);"></div>
+      <div class="algo-card-title" style="color:var(--amber);">Tachycardia</div>
+      <div class="algo-card-desc">Stable vs. unstable tachycardia. Cardioversion, adenosine, antiarrhythmics, and rate control strategies.</div>
+      <div class="algo-card-tags">
+        <span class="algo-tag" style="background:var(--amber-dim);color:var(--amber);">Narrow QRS</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">Wide QRS</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">Cardioversion</span>
+      </div>
+    </div>
+    <div class="algo-card" onclick="showAlgorithm('post-rosc')">
+      <div class="algo-card-accent" style="background:var(--green);"></div>
+      <div class="algo-card-title" style="color:var(--green);">Post-ROSC Care</div>
+      <div class="algo-card-desc">After return of spontaneous circulation. Oxygenation targets, 12-lead ECG, hemodynamic support, and targeted temperature management.</div>
+      <div class="algo-card-tags">
+        <span class="algo-tag" style="background:var(--green-dim);color:var(--green);">ROSC</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">TTM</span>
+        <span class="algo-tag" style="background:var(--panel2);color:var(--text-dim);">STEMI</span>
+      </div>
+    </div>
+  </div>
+  <div class="drug-ref-btn" onclick="showScreen('drugScreen')">
+    <span style="font-size:1.4rem;">💊</span>
+    <div>
+      <div class="drug-ref-btn-title">Drug Reference</div>
+      <div class="drug-ref-btn-desc">ACLS drug doses, indications, and administration notes</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ ALGORITHM DETAIL ═══════════════════════ -->
+<div id="algoScreen" class="screen">
+  <div class="nav-bar">
+    <div class="nav-logo" onclick="showScreen('homeScreen')">CODE <span>BLUE</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showScreen('learnScreen')">← Algorithms</button>
+      <button class="nav-btn" onclick="showScreen('practiceScreen')">Practice</button>
+    </div>
+  </div>
+  <div class="screen-header" id="algoDetailHeader">
+    <div class="screen-title" id="algoDetailTitle">Algorithm</div>
+    <div class="screen-desc" id="algoDetailDesc"></div>
+  </div>
+  <div class="algo-detail-layout" style="flex:1;overflow:hidden;">
+    <div class="algo-flowchart-area">
+      <div class="step-controls">
+        <button class="step-btn primary" id="stepBackBtn" onclick="stepBack()">← Prev</button>
+        <button class="step-btn primary" id="stepNextBtn" onclick="stepNext()">Next →</button>
+        <button class="step-btn" onclick="showAllSteps()">Show All</button>
+        <button class="step-btn" onclick="resetSteps()">Reset</button>
+        <span class="step-counter" id="stepCounter">Step 1 of ?</span>
+      </div>
+      <div class="flowchart" id="algoFlowchart"></div>
+    </div>
+    <div class="algo-sidebar" id="algoSidebar"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ DRUG REFERENCE ═══════════════════════ -->
+<div id="drugScreen" class="screen">
+  <div class="nav-bar">
+    <div class="nav-logo" onclick="showScreen('homeScreen')">CODE <span>BLUE</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showScreen('learnScreen')">← Learn</button>
+      <button class="nav-btn" onclick="showScreen('practiceScreen')">Practice</button>
+    </div>
+  </div>
+  <div class="screen-header">
+    <div class="screen-title">Drug <span>Reference</span></div>
+    <div class="screen-desc">Key ACLS medications with doses, indications, and notes. Based on 2020 AHA Guidelines.</div>
+  </div>
+  <div class="drug-grid" id="drugGrid"></div>
+</div>
+
+<!-- ═══════════════════════ PRACTICE / CASE SELECT ═══════════════════════ -->
+<div id="practiceScreen" class="screen">
+  <div class="nav-bar">
+    <div class="nav-logo" onclick="showScreen('homeScreen')">CODE <span>BLUE</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showScreen('learnScreen')">Learn</button>
+      <button class="nav-btn active" onclick="showScreen('practiceScreen')">Practice</button>
+    </div>
+  </div>
+  <div class="screen-header">
+    <div class="screen-title">ACLS <span>Scenarios</span></div>
+    <div class="screen-desc">Choose a case to simulate. The AI plays your nurse and the monitor — you type orders and manage the patient in real time.</div>
+  </div>
+  <div class="case-grid" id="caseGrid"></div>
+</div>
+
+<!-- ═══════════════════════ GAME ═══════════════════════ -->
+<div id="gameScreen" class="screen">
   <div class="topbar">
-    <div class="topbar-title">CODE BLUE</div>
-    <div class="topbar-case">Room 4 · Night Shift · Case #07</div>
+    <div class="topbar-left">
+      <div class="topbar-title">CODE BLUE</div>
+      <div class="topbar-case" id="topbarCase">—</div>
+    </div>
+    <button class="topbar-exit" onclick="exitToMenu()">Exit</button>
     <div class="timer-wrap">
       <div class="timer-label">Time remaining</div>
       <div id="timerDisplay">10:00</div>
@@ -724,28 +932,28 @@ input#cmdInput::placeholder { color: var(--text-muted); }
   <div class="monitor-row">
     <div class="vital-box">
       <div class="vital-label">HR bpm</div>
-      <div class="vital-value critical" id="vHR">138</div>
+      <div class="vital-value critical" id="vHR">---</div>
     </div>
     <div class="vital-box">
       <div class="vital-label">BP mmHg</div>
-      <div class="vital-value abnormal" id="vBP">88/54</div>
+      <div class="vital-value critical" id="vBP">---</div>
     </div>
     <div class="vital-box">
       <div class="vital-label">SpO₂ %</div>
-      <div class="vital-value abnormal" id="vO2">91</div>
+      <div class="vital-value critical" id="vO2">---</div>
     </div>
     <div class="vital-box">
       <div class="vital-label">RR /min</div>
-      <div class="vital-value abnormal" id="vRR">26</div>
+      <div class="vital-value abnormal" id="vRR">---</div>
     </div>
   </div>
 
   <div class="ecg-wrap">
-    <div class="ecg-label">ECG II</div>
+    <div class="ecg-label" id="ecgRhythmLabel">ECG II</div>
     <canvas id="ecgCanvas"></canvas>
   </div>
 
-  <div class="content-area">
+  <div class="content-area" style="flex:1;overflow:hidden;">
     <div class="chat-panel">
       <div class="chat-log" id="chatLog">
         <div class="typing-indicator" id="typingIndicator">
@@ -753,16 +961,7 @@ input#cmdInput::placeholder { color: var(--text-muted); }
         </div>
       </div>
       <div class="input-area">
-        <div class="quick-actions">
-          <button class="quick-btn" onclick="quickAction('Get IV access and draw stat labs')">IV + Labs</button>
-          <button class="quick-btn" onclick="quickAction('Give 1L NS bolus IV')">1L NS bolus</button>
-          <button class="quick-btn" onclick="quickAction('Apply oxygen 15L via non-rebreather mask')">O₂ NRB</button>
-          <button class="quick-btn" onclick="quickAction('Get 12-lead ECG now')">12-lead ECG</button>
-          <button class="quick-btn" onclick="quickAction('What is the patient history?')">Hx</button>
-          <button class="quick-btn" onclick="quickAction('Examine the patient')">Examine</button>
-          <button class="quick-btn" onclick="quickAction('Get portable CXR stat')">CXR</button>
-          <button class="quick-btn" onclick="quickAction('Call attending for backup')">Call attending</button>
-        </div>
+        <div class="quick-actions" id="quickActionsBar"></div>
         <div class="cmd-row">
           <span class="cmd-prompt">▶</span>
           <input type="text" id="cmdInput" placeholder="Type your order or question..." autocomplete="off" />
@@ -774,11 +973,11 @@ input#cmdInput::placeholder { color: var(--text-muted); }
     <div class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-title">Patient</div>
-        <div class="patient-name" id="patientName">Loading...</div>
+        <div class="patient-name" id="patientName">—</div>
         <div class="patient-meta" id="patientMeta">—</div>
       </div>
-      <div class="sidebar-section" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
-        <div class="sidebar-title">Management Checklist</div>
+      <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="sidebar-title">ACLS Checklist</div>
         <div class="checklist" id="checklist"></div>
       </div>
       <div class="score-wrap">
@@ -789,48 +988,764 @@ input#cmdInput::placeholder { color: var(--text-muted); }
   </div>
 </div>
 
-<!-- END SCREEN -->
-<div id="endScreen">
+<!-- ═══════════════════════ END SCREEN ═══════════════════════ -->
+<div id="endScreen" class="screen">
   <div class="end-status" id="endStatus">SURVIVED</div>
-  <div class="end-diagnosis" id="endDiagnosis">Diagnosis: —</div>
+  <div class="end-diagnosis" id="endDiagnosis">—</div>
   <div class="end-explanation" id="endExplanation"></div>
   <div class="end-score" id="endScore">0</div>
   <div class="end-score-label">Final Score</div>
-  <button class="btn-restart" onclick="location.reload()">New Case</button>
+  <div class="end-btns">
+    <button class="btn-restart primary" onclick="showScreen('practiceScreen')">Try Another Case</button>
+    <button class="btn-restart" onclick="showScreen('learnScreen')">Review Algorithm</button>
+    <button class="btn-restart" onclick="showScreen('homeScreen')">Home</button>
+  </div>
 </div>
 
 <script>
-// ── ECG CANVAS ──
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'drugScreen') renderDrugGrid();
+  if (id === 'practiceScreen') renderCaseGrid();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALGORITHM DATA
+// ═══════════════════════════════════════════════════════════
+const ALGORITHMS = {
+  'cardiac-arrest': {
+    title: 'Cardiac Arrest Algorithm',
+    titleColor: 'var(--red)',
+    desc: 'Management of VF/Pulseless VT (shockable) and PEA/Asystole (non-shockable) rhythms. This algorithm drives all cardiac arrest resuscitations.',
+    drugs: ['epinephrine', 'amiodarone', 'lidocaine', 'bicarb'],
+    steps: [
+      { type: 'action', label: 'Step 1', text: 'Confirm cardiac arrest: unresponsive, no normal breathing, no pulse within 10 seconds.' },
+      { type: 'action', label: 'Step 2', text: 'Call for help. Activate emergency response. Note time of arrest.' },
+      { type: 'action', label: 'Step 3', text: '<strong>Start high-quality CPR immediately:</strong> 100–120 compressions/min, ≥2 inch depth, full recoil, minimize interruptions. 30:2 ratio if unventilated.' },
+      { type: 'action', label: 'Step 4', text: 'Attach monitor/defibrillator. Give supplemental oxygen. Establish IV or IO access.' },
+      { type: 'decision', label: 'Decision', text: '🔎 Check rhythm every 2 minutes: Is the rhythm <strong>shockable</strong>? (VF or Pulseless VT)' },
+      { type: 'branch', yesLabel: 'YES — Shockable (VF/pVT)', noLabel: 'NO — Non-shockable (PEA/Asystole)',
+        yes: [
+          { type: 'drug', text: '<strong>Defibrillate once:</strong> Biphasic 120–200J (manufacturer recommendation) or Monophasic 360J. Immediately resume CPR after shock.' },
+          { type: 'action', text: 'Continue CPR × 2 minutes. Establish IV/IO if not done.' },
+          { type: 'drug', text: 'After 2nd shock: <strong>Epinephrine 1mg IV/IO every 3–5 minutes.</strong>' },
+          { type: 'drug', text: 'After 3rd shock (refractory VF): <strong>Amiodarone 300mg IV/IO</strong> (2nd dose: 150mg) OR <strong>Lidocaine 1–1.5mg/kg IV/IO</strong> (max 3mg/kg).' },
+          { type: 'action', text: 'Check rhythm every 2 min. If organized rhythm → check pulse. If ROSC → post-arrest care.' },
+        ],
+        no: [
+          { type: 'action', text: '<strong>Resume CPR immediately</strong> for 2 minutes.' },
+          { type: 'drug', text: '<strong>Epinephrine 1mg IV/IO as soon as possible, every 3–5 minutes.</strong> No evidence for vasopressin over epi.' },
+          { type: 'action', text: 'Consider advanced airway (intubation or SGA). Confirm placement with waveform capnography.' },
+          { type: 'action', text: 'If asystole: verify leads are connected and gain is adequate. Consider treatable causes.' },
+          { type: 'action', text: 'Check rhythm every 2 min. If shockable rhythm develops → switch to VF pathway.' },
+        ]
+      },
+      { type: 'action', label: 'H\'s & T\'s', text: '<strong>Treat reversible causes throughout:</strong><br>H\'s: Hypovolemia · Hypoxia · Hydrogen ion (acidosis) · Hypo/hyperkalemia · Hypothermia<br>T\'s: Tension pneumo · Tamponade · Toxins · Thrombosis (PE or MI)' },
+      { type: 'success', label: 'Goal', text: '✓ ROSC achieved → proceed to Post-Cardiac Arrest Care. Target SpO₂ 94–99%, PaCO₂ 35–45 mmHg.' },
+    ]
+  },
+
+  'bradycardia': {
+    title: 'Bradycardia Algorithm',
+    titleColor: 'var(--cyan)',
+    desc: 'Management of symptomatic bradycardia (HR < 50 bpm) with hemodynamic instability.',
+    drugs: ['atropine', 'dopamine', 'epinephrine-infusion'],
+    steps: [
+      { type: 'action', label: 'Step 1', text: 'Identify bradycardia: HR &lt; 50 bpm or inappropriately slow for clinical condition.' },
+      { type: 'action', label: 'Step 2', text: 'Obtain 12-lead ECG. Identify rhythm: sinus bradycardia, AV block (1°, 2° Mobitz I/II, 3°), junctional, or idioventricular.' },
+      { type: 'action', label: 'Step 3', text: 'Maintain airway, assist breathing, give O₂ if indicated. IV access. Monitor continuously.' },
+      { type: 'decision', label: 'Decision', text: '🔎 Are signs or symptoms of <strong>hemodynamic compromise</strong> present?<br><em>Hypotension · Altered mental status · Signs of shock · Ischemic chest pain · Acute HF</em>' },
+      { type: 'branch', yesLabel: 'YES — Unstable', noLabel: 'NO — Stable',
+        yes: [
+          { type: 'drug', text: '<strong>Atropine 1mg IV — first-line for unstable bradycardia.</strong> Repeat every 3–5 min, maximum total dose 3mg.' },
+          { type: 'action', text: 'If atropine is ineffective or not appropriate (e.g., 3rd degree AV block, Mobitz II), move to next options:' },
+          { type: 'drug', text: '<strong>Transcutaneous pacing (TCP):</strong> First-line for Mobitz II and 3rd degree AV block. Set rate 60–80 bpm. Increase mA until electrical capture, then confirm mechanical capture (pulse).' },
+          { type: 'drug', text: '<strong>Dopamine infusion: 5–20 mcg/kg/min IV</strong> — chronotropic and vasopressor effect. Start at 5, titrate to HR and BP.' },
+          { type: 'drug', text: '<strong>Epinephrine infusion: 2–10 mcg/min IV</strong> — alternative to dopamine for refractory bradycardia with shock.' },
+          { type: 'action', text: 'Prepare for <strong>transvenous pacing</strong>. Call cardiology for permanent pacemaker evaluation.' },
+        ],
+        no: [
+          { type: 'action', text: 'Monitor and observe. Identify and treat underlying cause (e.g., hyperkalemia, hypothyroidism, medication effect, vagal tone).' },
+          { type: 'action', text: 'Review medications: beta-blockers, calcium channel blockers, digoxin — hold if implicated.' },
+          { type: 'action', text: 'Prepare for transcutaneous pacing in case patient deteriorates.' },
+        ]
+      },
+      { type: 'action', label: 'Causes', text: '<strong>Consider reversible causes:</strong> Myocardial ischemia (inferior MI → RCA) · Hyperkalemia · Medication toxicity (dig, BB, CCB) · Hypothyroidism · Hypothermia · Increased vagal tone · Sick sinus syndrome' },
+    ]
+  },
+
+  'tachycardia': {
+    title: 'Tachycardia Algorithm',
+    titleColor: 'var(--amber)',
+    desc: 'Management of tachycardia (HR > 100 bpm) — stable vs. unstable, narrow vs. wide QRS.',
+    drugs: ['adenosine', 'amiodarone', 'diltiazem', 'metoprolol'],
+    steps: [
+      { type: 'action', label: 'Step 1', text: 'Identify tachycardia: HR > 100 bpm. Attach monitor, 12-lead ECG, IV access, O₂ if needed.' },
+      { type: 'decision', label: 'Decision 1', text: '🔎 Is the patient <strong>hemodynamically unstable</strong>?<br><em>Hypotension · Acutely altered mental status · Signs of shock · Ischemic chest pain · Acute HF</em>' },
+      { type: 'branch', yesLabel: 'YES — Unstable (any tachyarrhythmia)', noLabel: 'NO — Stable — assess QRS',
+        yes: [
+          { type: 'drug', text: '<strong>Synchronized cardioversion — immediate.</strong><br>Sedate if conscious (midazolam, fentanyl).<br>Narrow regular: 50–100J → Narrow irregular (AFib): 120–200J → Wide regular: 100J → Wide irregular: defibrillation dose (unsynchronized).' },
+          { type: 'action', text: 'If cardioversion fails or rhythm recurs: Amiodarone 150mg IV over 10 min, then repeat cardioversion.' },
+        ],
+        no: [
+          { type: 'decision', text: '🔎 Is QRS <strong>narrow</strong> (&lt;0.12s / 3 small boxes) or <strong>wide</strong> (≥0.12s)?' },
+          { type: 'branch', yesLabel: 'NARROW QRS', noLabel: 'WIDE QRS',
+            yes: [
+              { type: 'decision', text: '🔎 Is narrow-complex tachycardia <strong>regular</strong> or <strong>irregular</strong>?' },
+              { type: 'branch', yesLabel: 'Regular (SVT/AVNRT)', noLabel: 'Irregular (AFib/Flutter)',
+                yes: [
+                  { type: 'action', text: '<strong>Vagal maneuvers first:</strong> Valsalva (strain then leg raise) or carotid sinus massage (contraindicated if carotid bruit).' },
+                  { type: 'drug', text: '<strong>Adenosine 6mg IV rapid push</strong> (antecubital or above). Flush immediately with 20mL NS. If no conversion: 12mg, then 12mg again.' },
+                  { type: 'drug', text: 'If no response: <strong>Rate control</strong> — Diltiazem 15–20mg IV over 2 min OR Metoprolol 5mg IV q5min × 3. Consider cardiology consult.' },
+                ],
+                no: [
+                  { type: 'drug', text: '<strong>Rate control for AFib/Flutter:</strong> Diltiazem 15–20mg IV or Metoprolol 5mg IV. Avoid if pre-excitation (WPW) or HFrEF.' },
+                  { type: 'action', text: 'Anticoagulation if AFib ≥48h or unknown duration. Cardiology consult for rhythm control vs. rate control strategy.' },
+                  { type: 'action', text: 'If WPW suspected (delta waves, wide QRS): <strong>avoid adenosine, AV nodal blockers</strong>. Use procainamide or cardioversion.' },
+                ]
+              }
+            ],
+            no: [
+              { type: 'action', text: '<strong>Assume VT until proven otherwise.</strong> Wide-complex tachycardia in a cardiac patient is VT 80% of the time.' },
+              { type: 'drug', text: '<strong>Amiodarone 150mg IV over 10 minutes</strong>, then 1mg/min infusion × 6h. Expert cardiology consult.' },
+              { type: 'drug', text: 'Alternative: <strong>Procainamide 20–50mg/min IV</strong> until arrhythmia suppressed, hypotension, QRS widens 50%, or 17mg/kg given. Avoid in prolonged QT or CHF.' },
+              { type: 'action', text: 'If torsades de pointes (irregular wide complex with QT prolongation): <strong>Magnesium 1–2g IV over 5–15 min</strong>. Correct hypokalemia.' },
+            ]
+          }
+        ]
+      },
+    ]
+  },
+
+  'post-rosc': {
+    title: 'Post-Cardiac Arrest Care',
+    titleColor: 'var(--green)',
+    desc: 'Systematic management after return of spontaneous circulation (ROSC) to optimize neurological recovery and survival.',
+    drugs: ['norepinephrine', 'dopamine', 'epinephrine-infusion'],
+    steps: [
+      { type: 'success', label: 'ROSC', text: '✓ Return of spontaneous circulation achieved. Systematic post-arrest care now begins.' },
+      { type: 'action', label: 'Airway', text: '<strong>Optimize oxygenation:</strong> Target SpO₂ 94–99%. Avoid hyperoxia (SpO₂ &gt; 99% causes harm). If not already intubated, consider early intubation for airway protection.' },
+      { type: 'action', label: 'Breathing', text: '<strong>Optimize ventilation:</strong> Target PaCO₂ 35–45 mmHg. Titrate RR and tidal volume. Use waveform capnography — ETCO₂ 35–40 mmHg correlates. Avoid hypocapnia (causes cerebral vasoconstriction).' },
+      { type: 'action', label: 'Circulation', text: '<strong>12-lead ECG immediately</strong> after ROSC. Treat hypotension (SBP &lt;90 or MAP &lt;65): IV fluid bolus 1–2L if not fluid-overloaded, then vasopressors.' },
+      { type: 'drug', label: 'Vasopressors', text: '<strong>Norepinephrine</strong> 0.1–0.5 mcg/kg/min — first-line vasopressor post-ROSC.<br><strong>Epinephrine</strong> 0.1–0.5 mcg/kg/min — for combined vasopressor and inotrope.<br><strong>Dopamine</strong> 5–20 mcg/kg/min — alternative.' },
+      { type: 'decision', label: 'STEMI?', text: '🔎 Does the 12-lead ECG show <strong>STEMI</strong> or high suspicion of acute occlusion MI?' },
+      { type: 'branch', yesLabel: 'YES — STEMI or suspected AOMI', noLabel: 'NO — No ST elevation',
+        yes: [
+          { type: 'action', text: '<strong>Emergent coronary angiography and PCI</strong> — regardless of neurological status. Activate cath lab. Do not delay for head CT or temperature management.' },
+          { type: 'action', text: 'Antiplatelet therapy: Aspirin 325mg + P2Y12 inhibitor (ticagrelor or clopidogrel) per cardiology guidance.' },
+        ],
+        no: [
+          { type: 'action', text: 'If no obvious non-cardiac cause, consider coronary angiography (timing guided by clinical picture and cardiology consult).' },
+        ]
+      },
+      { type: 'decision', label: 'Neuro', text: '🔎 Does the patient <strong>follow commands</strong> (e.g., squeeze your hand, open your eyes)?' },
+      { type: 'branch', yesLabel: 'YES — Following commands', noLabel: 'NO — Comatose',
+        yes: [
+          { type: 'action', text: 'Continue standard ICU care. Prevent fever (&gt;37.7°C). Frequent neuro checks. Early rehabilitation.' },
+        ],
+        no: [
+          { type: 'action', text: '<strong>Targeted Temperature Management (TTM): target 32–36°C for at least 24 hours.</strong> Use cooling blanket, cold IV fluids, or endovascular cooling catheter. Prevent shivering (buspirone, meperidine, magnesium, sedation).' },
+          { type: 'action', text: 'After TTM: controlled rewarming at 0.25°C/hour. Prevent rebound hyperthermia for 72 hours post-arrest.' },
+          { type: 'action', text: '<strong>Neuroprognostication:</strong> Do not declare poor prognosis before 72h post-rewarming. Multimodal assessment: clinical exam, EEG, SSEP, brain imaging, biomarkers.' },
+        ]
+      },
+      { type: 'action', label: 'Labs & Monitoring', text: '<strong>Labs:</strong> ABG, BMP, lactate, CBC, troponin, point-of-care glucose (target 140–180 mg/dL).<br><strong>Monitoring:</strong> Continuous ECG, arterial line for BP, pulse ox, ETCO₂, ICP if indicated.' },
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// ALGORITHM RENDERER
+// ═══════════════════════════════════════════════════════════
+let currentAlgoSteps = [];
+let currentStep = 0;
+
+function showAlgorithm(key) {
+  const algo = ALGORITHMS[key];
+  if (!algo) return;
+
+  document.getElementById('algoDetailTitle').innerHTML = algo.title.replace(/(\w+)$/, '<span>$1</span>');
+  document.getElementById('algoDetailTitle').style.setProperty('--title-color', algo.titleColor);
+  document.querySelector('#algoDetailTitle span').style.color = algo.titleColor;
+  document.getElementById('algoDetailDesc').textContent = algo.desc;
+
+  currentAlgoSteps = flattenSteps(algo.steps);
+  currentStep = 0;
+  renderFlowchart(algo.steps);
+  renderAlgoSidebar(algo.drugs);
+  updateStepHighlight();
+  showScreen('algoScreen');
+}
+
+function flattenSteps(steps) {
+  const flat = [];
+  steps.forEach((s, i) => {
+    flat.push(i);
+    if (s.type === 'branch') {
+      s.yes.forEach((_, j) => flat.push(`${i}-yes-${j}`));
+      s.no.forEach((_, j) => flat.push(`${i}-no-${j}`));
+      if (s.yes[0] && s.yes[0].type === 'branch') {
+        s.yes[0].yes.forEach((_, k) => flat.push(`${i}-yes-0-yes-${k}`));
+        s.yes[0].no.forEach((_, k) => flat.push(`${i}-yes-0-no-${k}`));
+        if (s.yes[0].yes[0] && s.yes[0].yes[0].type === 'branch') {
+          s.yes[0].yes[0].yes.forEach((_, m) => flat.push(`${i}-yes-0-yes-0-yes-${m}`));
+          s.yes[0].yes[0].no.forEach((_, m) => flat.push(`${i}-yes-0-yes-0-no-${m}`));
+        }
+        if (s.yes[0].no[0] && s.yes[0].no[0].type === 'branch') {
+          s.yes[0].no[0].yes.forEach((_, m) => flat.push(`${i}-yes-0-no-0-yes-${m}`));
+          s.yes[0].no[0].no.forEach((_, m) => flat.push(`${i}-yes-0-no-0-no-${m}`));
+        }
+      }
+    }
+  });
+  return flat;
+}
+
+function renderNode(node, id) {
+  if (!node || node.type === 'branch') return '';
+  const typeClass = node.type || 'action';
+  return `
+    <div class="flow-node ${typeClass} dim" id="fn-${id}" onclick="jumpToNode('${id}')">
+      ${node.label ? `<div class="flow-step-num">${node.label}</div>` : ''}
+      <div>${node.text}</div>
+    </div>`;
+}
+
+function renderBranch(branch, parentId) {
+  let html = `<div class="flow-branch-wrap" id="fn-${parentId}">`;
+  html += `<div class="flow-branch">
+    <div class="flow-branch-label yes">${branch.yesLabel || 'YES'}</div>`;
+  branch.yes.forEach((node, j) => {
+    const id = `${parentId}-yes-${j}`;
+    if (node.type === 'branch') {
+      html += renderBranch(node, id);
+    } else {
+      html += renderNode(node, id);
+      if (j < branch.yes.length - 1) html += `<div class="flow-arrow">↓</div>`;
+    }
+  });
+  html += `</div><div class="flow-branch">
+    <div class="flow-branch-label no">${branch.noLabel || 'NO'}</div>`;
+  branch.no.forEach((node, j) => {
+    const id = `${parentId}-no-${j}`;
+    if (node.type === 'branch') {
+      html += renderBranch(node, id);
+    } else {
+      html += renderNode(node, id);
+      if (j < branch.no.length - 1) html += `<div class="flow-arrow">↓</div>`;
+    }
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+function renderFlowchart(steps) {
+  let html = '';
+  steps.forEach((step, i) => {
+    if (step.type === 'branch') {
+      html += `<div class="flow-arrow">↓</div>`;
+      html += renderBranch(step, i);
+    } else {
+      if (i > 0) html += `<div class="flow-arrow">↓</div>`;
+      html += renderNode(step, i);
+    }
+  });
+  document.getElementById('algoFlowchart').innerHTML = html;
+  document.getElementById('stepCounter').textContent = `Step 1 of ${currentAlgoSteps.length}`;
+}
+
+function updateStepHighlight() {
+  document.querySelectorAll('.flow-node').forEach(el => {
+    el.classList.add('dim');
+    el.classList.remove('highlight');
+  });
+  for (let i = 0; i <= currentStep && i < currentAlgoSteps.length; i++) {
+    const id = currentAlgoSteps[i];
+    const el = document.getElementById(`fn-${id}`);
+    if (el) {
+      el.classList.remove('dim');
+      if (i === currentStep) {
+        el.classList.add('highlight');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }
+  document.getElementById('stepCounter').textContent = `Step ${currentStep + 1} of ${currentAlgoSteps.length}`;
+}
+
+function stepNext() {
+  if (currentStep < currentAlgoSteps.length - 1) {
+    currentStep++;
+    updateStepHighlight();
+  }
+}
+
+function stepBack() {
+  if (currentStep > 0) {
+    currentStep--;
+    updateStepHighlight();
+  }
+}
+
+function showAllSteps() {
+  currentStep = currentAlgoSteps.length - 1;
+  document.querySelectorAll('.flow-node').forEach(el => {
+    el.classList.remove('dim', 'highlight');
+  });
+  document.getElementById('stepCounter').textContent = `All steps shown`;
+}
+
+function resetSteps() {
+  currentStep = 0;
+  updateStepHighlight();
+}
+
+function jumpToNode(id) {
+  const idx = currentAlgoSteps.indexOf(id.replace('fn-', ''));
+  if (idx >= 0) { currentStep = idx; updateStepHighlight(); }
+}
+
+function renderAlgoSidebar(drugKeys) {
+  const sidebar = document.getElementById('algoSidebar');
+  const drugs = DRUG_REFERENCE.filter(d => drugKeys.includes(d.key));
+  sidebar.innerHTML = `<div class="sidebar-section-title">Key Drugs</div>` +
+    drugs.map(d => `
+      <div class="drug-card">
+        <div class="drug-indication">${d.indication}</div>
+        <div class="drug-name">${d.name}</div>
+        <div class="drug-dose">${d.dose}</div>
+      </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DRUG REFERENCE DATA
+// ═══════════════════════════════════════════════════════════
+const DRUG_REFERENCE = [
+  {
+    key: 'epinephrine',
+    name: 'Epinephrine',
+    class: 'Catecholamine / Vasopressor',
+    indication: 'Cardiac Arrest (VF, PEA, Asystole)',
+    dose: '<strong>Cardiac arrest:</strong> 1mg IV/IO every 3–5 minutes. Give after 2nd shock in VF.<br><strong>Severe anaphylaxis:</strong> 0.3–0.5mg IM (1:1000).',
+    note: '2020 AHA: Give as soon as possible in non-shockable arrest. In VF, give after 2nd failed shock.'
+  },
+  {
+    key: 'epinephrine-infusion',
+    name: 'Epinephrine (Infusion)',
+    class: 'Catecholamine / Vasopressor',
+    indication: 'Post-ROSC / Symptomatic Bradycardia',
+    dose: '<strong>Bradycardia:</strong> 2–10 mcg/min IV infusion.<br><strong>Post-ROSC hypotension:</strong> 0.1–0.5 mcg/kg/min. Titrate to MAP ≥65.',
+    note: 'Central line preferred for prolonged infusions. Peripheral IV acceptable temporarily.'
+  },
+  {
+    key: 'amiodarone',
+    name: 'Amiodarone',
+    class: 'Class III Antiarrhythmic',
+    indication: 'Refractory VF/VT · Stable VT · AFib rate control',
+    dose: '<strong>Cardiac arrest (VF/pVT):</strong> 300mg IV/IO bolus; 2nd dose 150mg.<br><strong>Stable VT:</strong> 150mg IV over 10 min, then 1mg/min × 6h.<br><strong>Maintenance:</strong> 0.5mg/min × 18h.',
+    note: 'Dilute in D5W. Can cause hypotension and bradycardia. Monitor QTc.'
+  },
+  {
+    key: 'lidocaine',
+    name: 'Lidocaine',
+    class: 'Class Ib Antiarrhythmic',
+    indication: 'VF/Pulseless VT (alternative to amiodarone)',
+    dose: '<strong>Cardiac arrest:</strong> 1–1.5mg/kg IV/IO first dose; then 0.5–0.75mg/kg q5–10min (max 3mg/kg total).<br><strong>Maintenance:</strong> 1–4mg/min infusion.',
+    note: 'Alternative when amiodarone unavailable. Equal efficacy to amiodarone per ALPS trial.'
+  },
+  {
+    key: 'atropine',
+    name: 'Atropine',
+    class: 'Anticholinergic / Vagolytic',
+    indication: 'Symptomatic Bradycardia',
+    dose: '<strong>Bradycardia:</strong> 1mg IV push, repeat every 3–5 minutes. Maximum total dose: 3mg.',
+    note: 'Not effective for Mobitz II or 3rd degree AV block below the AV node. Use pacing instead.'
+  },
+  {
+    key: 'dopamine',
+    name: 'Dopamine',
+    class: 'Catecholamine / Vasopressor-Inotrope',
+    indication: 'Bradycardia (if atropine fails) · Post-ROSC Hypotension',
+    dose: '<strong>Bradycardia:</strong> 5–20 mcg/kg/min IV infusion. Start at 5, titrate to HR response.<br><strong>Hypotension:</strong> Same range, titrate to MAP.',
+    note: 'Dose-dependent effects: 1–5 renal, 5–10 cardiac (inotropy), >10 vasopressor.'
+  },
+  {
+    key: 'adenosine',
+    name: 'Adenosine',
+    class: 'Endogenous Nucleoside / AV Nodal Blocker',
+    indication: 'Regular Narrow-Complex SVT',
+    dose: '<strong>1st dose:</strong> 6mg IV rapid push — must be proximal vein (antecubital). Flush immediately with 20mL NS.<br><strong>2nd dose:</strong> 12mg if no conversion after 1–2 min.<br><strong>3rd dose:</strong> 12mg again if needed.',
+    note: 'Half-life: ~10 seconds. Warn patient of chest pressure/flushing. <strong>Contraindicated in WPW + AFib, sick sinus syndrome without pacemaker.</strong>'
+  },
+  {
+    key: 'diltiazem',
+    name: 'Diltiazem',
+    class: 'Calcium Channel Blocker / Rate Control',
+    indication: 'AFib/Flutter Rate Control · SVT (if adenosine fails)',
+    dose: '<strong>Rate control:</strong> 15–20mg (0.25mg/kg) IV over 2 min. May repeat 20–25mg after 15 min.<br><strong>Infusion:</strong> 5–15mg/hr.',
+    note: 'Avoid in HFrEF (EF<40%), WPW, hypotension, wide-complex tachycardia of unknown origin.'
+  },
+  {
+    key: 'metoprolol',
+    name: 'Metoprolol',
+    class: 'Beta-1 Selective Blocker / Rate Control',
+    indication: 'AFib/Flutter Rate Control · SVT',
+    dose: '<strong>IV:</strong> 5mg IV over 2–5 min every 5 min × 3 doses (max 15mg).<br><strong>Oral:</strong> 25–100mg BID for maintenance.',
+    note: 'Avoid in acute decompensated HF, severe bronchospasm, high-degree AV block, cocaine toxicity.'
+  },
+  {
+    key: 'bicarb',
+    name: 'Sodium Bicarbonate',
+    class: 'Alkalinizing Agent',
+    indication: 'Hyperkalemia · TCA Overdose · Prolonged Arrest with metabolic acidosis',
+    dose: '<strong>1 mEq/kg IV</strong> as initial dose. May repeat based on ABG.<br>Not routine in cardiac arrest — only for specific indications.',
+    note: 'Can worsen intracellular acidosis if CO₂ not cleared. Ensure adequate ventilation before giving.'
+  },
+  {
+    key: 'norepinephrine',
+    name: 'Norepinephrine',
+    class: 'Catecholamine / Vasopressor',
+    indication: 'Post-ROSC Hypotension (first-line)',
+    dose: '<strong>0.1–0.5 mcg/kg/min IV infusion.</strong> Start low, titrate to MAP ≥65 mmHg.',
+    note: 'Preferred over dopamine post-ROSC (lower arrhythmia rate in SOAP-II trial). Central line strongly preferred.'
+  },
+  {
+    key: 'magnesium',
+    name: 'Magnesium Sulfate',
+    class: 'Electrolyte',
+    indication: 'Torsades de Pointes · Hypomagnesemia',
+    dose: '<strong>Torsades:</strong> 1–2g IV over 5–15 min (may push faster if pulseless). Can follow with 0.5–1g/hr infusion.',
+    note: 'First-line for TdP. Correct hypokalemia concurrently. Monitor for respiratory depression and hypotension.'
+  }
+];
+
+function renderDrugGrid() {
+  document.getElementById('drugGrid').innerHTML = DRUG_REFERENCE.map(d => `
+    <div class="drug-full-card">
+      <div class="drug-full-name">${d.name}</div>
+      <div class="drug-full-class">${d.class}</div>
+      <div class="drug-full-dose">${d.dose}</div>
+      ${d.note ? `<div class="drug-full-note">⚠ ${d.note}</div>` : ''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CASE DATA
+// ═══════════════════════════════════════════════════════════
+const CASES = [
+  {
+    id: 'vf-arrest',
+    title: 'Ventricular Fibrillation',
+    rhythm: 'VF / Pulseless VT',
+    rhythmColor: 'var(--red)',
+    difficulty: 'intermediate',
+    desc: 'A 58-year-old male with known CAD is found unresponsive on the telemetry floor. Monitor shows coarse VF. No pulse on check.',
+    patient: { name: 'James Rivera', meta: '58M · CAD · Telemetry Floor' },
+    vitals: { hr: '0', bp: '---', o2: '---', rr: '---', hrClass: 'critical', o2Class: 'critical', rrClass: 'critical' },
+    ecgMode: 'vfib',
+    ecgLabel: 'VF — SHOCK ADVISED',
+    quickActions: ['Start CPR', 'Charge defibrillator 200J', 'Epinephrine 1mg IV', 'Establish IV access', 'Amiodarone 300mg IV', 'Check rhythm', 'Check pulse', 'Intubate'],
+    checklist: [
+      { id: 'cpr', text: 'CPR started (100–120/min)', keywords: ['cpr', 'compress', 'chest compression', 'start cpr', 'begin cpr'] },
+      { id: 'defib', text: 'Defibrillated (200J)', keywords: ['shock', 'defibril', 'cardiovert', '200j', '200 j', 'biphasic', 'charge'] },
+      { id: 'epi1', text: 'Epinephrine 1mg given', keywords: ['epinephrine', 'epi', 'adrenaline', '1mg'] },
+      { id: 'iv', text: 'IV/IO access established', keywords: ['iv', 'access', 'line', 'io', 'intraosseous', 'cannula'] },
+      { id: 'amio', text: 'Amiodarone 300mg given', keywords: ['amiodarone', 'amio', '300mg', 'cordarone'] },
+      { id: 'airway', text: 'Advanced airway secured', keywords: ['intubat', 'tube', 'lma', 'airway', 'sga', 'ett'] },
+      { id: 'pulse', text: 'Pulse check performed', keywords: ['pulse', 'check pulse', 'feel for', 'carotid', 'femoral'] },
+      { id: 'rosc', text: 'ROSC achieved', keywords: ['rosc', 'pulse return', 'rhythm return', 'spontaneous circulation', 'heartbeat return'] },
+    ],
+    systemPrompt: `You run a Code Blue simulation. You play: NURSE (responds to orders, gives updates), MONITOR (reports rhythm changes), and PATIENT (unresponsive).
+
+SCENARIO: James Rivera, 58M, found unresponsive on telemetry. Known CAD, on aspirin and metoprolol. Found by nurse during routine check. Time of arrest unknown — assume witnessed (nurse saw him moments ago).
+
+INITIAL STATE: Pulseless. Monitor shows coarse ventricular fibrillation (VF). No spontaneous respirations.
+
+CORRECT ACLS SEQUENCE:
+1. CPR immediately (100-120/min, 2 inches depth)
+2. Defibrillate: 200J biphasic as soon as charged. Resume CPR immediately after.
+3. After 2nd shock: Epinephrine 1mg IV q3-5min
+4. After 3rd shock (still VF): Amiodarone 300mg IV
+5. Advanced airway, waveform capnography
+6. Treat H's and T's
+7. ROSC typically achievable with correct management
+
+PROGRESSION:
+- After correct CPR + 1st shock: rhythm briefly shows PEA then back to VF
+- After CPR + epi + 2nd shock: rhythm becomes fine VF/PEA
+- After amiodarone + CPR + correct sequence: ROSC (sinus rhythm, weak pulse, HR 88, BP 90/58)
+- If player delays > 3 turns without CPR/shock: report deterioration, report ETCO2 dropping
+
+RULES:
+- Only respond as [NURSE], [MONITOR], or stay silent for unresponsive patient
+- Keep responses 2-3 sentences max
+- If player correctly identifies VF and shocks: report rhythm update
+- If ROSC achieved: end with "ROSC CONFIRMED — patient has a pulse. Rhythm shows sinus tachycardia."
+- If player performs correct full sequence: end with "CASE COMPLETE"
+- Flag dangerous errors (wrong synchronization, wrong drug dose by factor of 10)
+- Use medical terminology
+
+DIAGNOSIS TO END GAME: When ROSC is achieved and patient stabilized, end with "ROSC CONFIRMED"`
+  },
+
+  {
+    id: 'pea-arrest',
+    title: 'PEA — Tension Pneumothorax',
+    rhythm: 'PEA · Non-shockable',
+    rhythmColor: 'var(--amber)',
+    difficulty: 'advanced',
+    desc: 'A 34-year-old woman is pulseless post-subclavian central line placement. Monitor shows organized rhythm. Trachea deviating to the right.',
+    patient: { name: 'Sarah Kim', meta: '34F · Post central line · ICU' },
+    vitals: { hr: '82', bp: '---', o2: '---', rr: '---', hrClass: 'abnormal', o2Class: 'critical', rrClass: 'critical' },
+    ecgMode: 'normal',
+    ecgLabel: 'Organized — No Pulse (PEA)',
+    quickActions: ['Start CPR', 'Epinephrine 1mg IV', 'Check breath sounds', 'Needle decompression', 'Chest X-ray', 'IV access', 'Check rhythm', 'Intubate'],
+    checklist: [
+      { id: 'cpr', text: 'CPR started immediately', keywords: ['cpr', 'compress', 'chest compression', 'start cpr'] },
+      { id: 'epi1', text: 'Epinephrine 1mg given', keywords: ['epinephrine', 'epi', 'adrenaline', '1mg'] },
+      { id: 'hs-ts', text: "H's & T's considered", keywords: ["h's and t's", "reversible cause", "tension", "tamponade", "hypovolemia", "hypoxia", "h and t"] },
+      { id: 'breath', text: 'Breath sounds assessed', keywords: ['breath sound', 'auscult', 'listen', 'air entry', 'decreased breath'] },
+      { id: 'needle', text: 'Needle decompression (2nd ICS MCL)', keywords: ['needle decompress', 'needle decom', '2nd intercostal', 'midclavicular', 'chest needle', 'decompress'] },
+      { id: 'airway', text: 'Advanced airway secured', keywords: ['intubat', 'tube', 'lma', 'airway', 'sga'] },
+      { id: 'chest-tube', text: 'Chest tube / thoracostomy', keywords: ['chest tube', 'thoracostomy', 'thoracentesis', 'drain'] },
+      { id: 'rosc', text: 'ROSC achieved', keywords: ['rosc', 'pulse return', 'rhythm return', 'spontaneous', 'heartbeat'] },
+    ],
+    systemPrompt: `You run a Code Blue simulation. You play: NURSE and MONITOR.
+
+SCENARIO: Sarah Kim, 34F, in ICU. Central line was just placed via right subclavian approach. Seconds later she became unresponsive. No pulse. Monitor shows organized QRS at 82/min — this is PEA from tension pneumothorax.
+
+HIDDEN DIAGNOSIS: Right-sided tension pneumothorax from subclavian line placement (iatrogenic).
+
+CLUES TO REVEAL:
+- Absent/decreased breath sounds on the RIGHT (if auscultation ordered)
+- Tracheal deviation to LEFT (away from tension side)
+- Hyperesonance right chest on percussion
+- Rising airway pressures if intubated
+- JVD (if examined)
+- CXR: absent lung markings right, tracheal shift (but don't wait for CXR — clinical diagnosis)
+
+CORRECT SEQUENCE:
+1. CPR immediately
+2. Epinephrine 1mg q3-5min (PEA protocol)
+3. Identify H's and T's — tension pneumo is the T
+4. Needle decompression: 2nd intercostal space, midclavicular line, right side (where decreased breath sounds are)
+5. After needle decompression: dramatic improvement, ROSC
+6. Follow with chest tube placement
+
+PROGRESSION:
+- Without needle decompression: patient remains in PEA despite CPR + epi
+- After needle decompression: "rush of air heard, ROSC — pulse returns HR 102, BP 88/60, improving"
+- If player shocks (wrong): "No shock advised — rhythm is organized. Continue CPR."
+
+RULES:
+- 2-3 sentences max per response
+- Format: [NURSE] or [MONITOR] tags
+- When ROSC: end with "ROSC CONFIRMED — tension pneumothorax decompressed successfully"
+- If player correctly identifies tension pneumo before needle decompression: award with "DIAGNOSIS CONFIRMED — proceeding with needle decompression"
+- Flag if player tries to shock PEA`
+  },
+
+  {
+    id: 'bradycardia',
+    title: 'Complete Heart Block',
+    rhythm: 'Bradycardia · 3rd Degree AVB',
+    rhythmColor: 'var(--cyan)',
+    difficulty: 'beginner',
+    desc: 'A 72-year-old man on digoxin is found confused with a heart rate of 28. BP 70/40. Complete AV dissociation on the monitor.',
+    patient: { name: 'Harold Foster', meta: '72M · Digoxin toxicity · ED' },
+    vitals: { hr: '28', bp: '70/40', o2: '94', rr: '16', hrClass: 'critical', o2Class: 'abnormal', rrClass: 'normal' },
+    ecgMode: 'brady',
+    ecgLabel: '3° AV Block — Capture pacing',
+    quickActions: ['Atropine 1mg IV', 'Transcutaneous pacing', 'Check digoxin level', 'IV access + labs', 'Oxygen', 'Call cardiology', 'Calcium gluconate', '12-lead ECG'],
+    checklist: [
+      { id: 'o2', text: 'Oxygen supplementation', keywords: ['oxygen', 'o2', 'nasal cannula', 'nrb', 'sat'] },
+      { id: 'iv', text: 'IV access + labs ordered', keywords: ['iv', 'access', 'labs', 'blood work', 'digoxin level', 'electrolytes'] },
+      { id: 'ecg', text: '12-lead ECG obtained', keywords: ['ecg', 'ekg', '12-lead', 'electrocardiogram'] },
+      { id: 'atropine', text: 'Atropine attempted (note: likely ineffective for 3° AVB)', keywords: ['atropine', 'atrop'] },
+      { id: 'tcp', text: 'Transcutaneous pacing initiated', keywords: ['transcutaneous', 'tcp', 'external pac', 'pacing', 'pace'] },
+      { id: 'capture', text: 'Electrical + mechanical capture confirmed', keywords: ['capture', 'pulse with pacing', 'mechanical capture', 'feel a pulse'] },
+      { id: 'digoxin', text: 'Digoxin toxicity addressed', keywords: ['digoxin', 'digibind', 'digifab', 'dig level', 'dig toxicity', 'hold dig'] },
+      { id: 'cards', text: 'Cardiology consulted for TVP', keywords: ['cardiology', 'transvenous', 'tvp', 'cardiologist', 'consult'] },
+    ],
+    systemPrompt: `You run a Code Blue simulation — symptomatic bradycardia case. You play NURSE and MONITOR.
+
+SCENARIO: Harold Foster, 72M, in ED. Found confused and diaphoretic. PMH: atrial fibrillation on digoxin 0.25mg daily, hypertension, CKD stage 3. Digoxin level came back 3.8 ng/mL (toxic; therapeutic 0.5–2.0).
+
+RHYTHM: 3rd degree (complete) AV block. P-waves: rate 80/min. QRS: rate 28/min, wide (ventricular escape). Complete AV dissociation.
+
+VITALS: HR 28, BP 70/40, SpO2 94%, RR 16, altered (GCS 12).
+
+CORRECT MANAGEMENT:
+1. O2, IV access, continuous monitoring
+2. 12-lead ECG
+3. Atropine 1mg IV — note: often ineffective in 3rd degree AVB below the AV node; try anyway per ACLS
+4. Transcutaneous pacing (TCP): set rate 70, increase mA until electrical capture (wide spike followed by QRS), then confirm mechanical capture (palpate pulse)
+5. Digoxin toxicity: hold digoxin, check electrolytes (especially K+ — hyperkalemia worsens AV block), consider Digibind/DigiFab for severe toxicity
+6. Cardiology consult for transvenous pacing
+7. Correct hypokalemia or hyperkalemia if present
+
+LABS (if ordered):
+- Digoxin level: 3.8 ng/mL (toxic)
+- K+: 5.6 mEq/L (mild hyperkalemia — worsening AV conduction)
+- Creatinine: 2.1 (CKD — reduced digoxin clearance)
+- Mg: 1.8 (low-normal)
+
+PROGRESSION:
+- Atropine: slight improvement (HR 34) but patient remains hemodynamically unstable
+- TCP at correct settings: "Electrical capture confirmed — each pacing spike followed by wide QRS. Do you feel a pulse with each complex?" → with pulse check: "Yes, femoral pulse present with each pacing complex. BP improving: 92/58."
+- Digibind 10 vials IV: "Digibind ordered — cardiology and pharmacy notified. Will take 30-60 min to take effect."
+- Successful pacing: mark case as complete after TCP capture confirmed + dig toxicity addressed
+
+RULES:
+- 2-3 sentences max
+- [NURSE] or [MONITOR] tags
+- End with "CASE COMPLETE" when TCP capture + dig addressed + cardiology consulted
+- Atropine is acceptable but flag that 3° AVB below AV node may not respond`
+  },
+
+  {
+    id: 'svt',
+    title: 'Unstable SVT',
+    rhythm: 'Tachycardia · Narrow Regular',
+    rhythmColor: 'var(--amber)',
+    difficulty: 'beginner',
+    desc: 'A 45-year-old woman presents with sudden-onset palpitations, chest tightness, and lightheadedness. HR 188, BP 82/50. Narrow regular tachycardia.',
+    patient: { name: 'Monica Chen', meta: '45F · Palpitations · ED' },
+    vitals: { hr: '188', bp: '82/50', o2: '96', rr: '22', hrClass: 'critical', o2Class: 'normal', rrClass: 'abnormal' },
+    ecgMode: 'tachy',
+    ecgLabel: 'SVT — Narrow Regular',
+    quickActions: ['Synchronized cardioversion 100J', 'Sedate (midazolam 2mg)', 'Adenosine 6mg IV', 'Vagal maneuver', 'IV access + labs', 'Oxygen', '12-lead ECG', 'Check BP'],
+    checklist: [
+      { id: 'o2', text: 'Oxygen and monitoring', keywords: ['oxygen', 'o2', 'monitor', 'sat', 'pulse ox'] },
+      { id: 'iv', text: 'IV access established', keywords: ['iv', 'access', 'line', 'cannula'] },
+      { id: 'ecg', text: '12-lead ECG obtained', keywords: ['ecg', 'ekg', '12-lead'] },
+      { id: 'unstable', text: 'Hemodynamic instability recognized', keywords: ['unstable', 'hypotens', 'low bp', 'shock', 'hemodynamic'] },
+      { id: 'sedation', text: 'Sedation given before cardioversion', keywords: ['sedat', 'midazolam', 'versed', 'fentanyl', 'ketamine', 'propofol'] },
+      { id: 'sync', text: 'Synchronized cardioversion performed', keywords: ['cardiovert', 'synchronized', 'sync', '50j', '100j', '200j', 'shock'] },
+      { id: 'convert', text: 'Rhythm converted to sinus', keywords: ['convert', 'sinus', 'normal sinus', 'nsr', 'rhythm convert'] },
+      { id: 'cause', text: 'Underlying cause investigated', keywords: ['cause', 'thyroid', 'tsh', 'electrolyte', 'history', 'trigger', 'caffeine', 'drugs'] },
+    ],
+    systemPrompt: `You run a Code Blue simulation — unstable tachycardia case. You play NURSE and MONITOR.
+
+SCENARIO: Monica Chen, 45F, in ED triage. Sudden-onset palpitations 30 minutes ago, now with chest tightness, diaphoresis, lightheadedness. No known cardiac history. On no medications.
+
+RHYTHM: Narrow complex regular tachycardia at 188 bpm. Regular R-R intervals. No visible P-waves (buried in T-waves). Consistent with AVNRT (SVT). QRS narrow at 0.08s.
+
+VITALS: HR 188, BP 82/50, SpO2 96%, RR 22. Patient is diaphoretic, anxious, GCS 15.
+
+HEMODYNAMIC STATUS: UNSTABLE — hypotension (BP 82/50), tachypnea, diaphoresis. Per ACLS: unstable tachycardia → synchronized cardioversion.
+
+CORRECT MANAGEMENT (unstable SVT):
+1. O2, IV access, continuous monitoring, 12-lead ECG
+2. Recognize instability: BP <90 with symptoms = hemodynamically unstable
+3. Sedate: midazolam 1-2mg IV or ketamine 0.5mg/kg IV (patient is conscious)
+4. Synchronized cardioversion: start 50-100J biphasic (set to SYNC mode — critical)
+5. Conversion to sinus rhythm expected with 1st or 2nd shock
+6. Post-conversion: monitor for recurrence, identify cause (electrolytes, thyroid, etc.)
+
+ALTERNATIVE (acceptable if player tries adenosine first before recognizing instability):
+- Adenosine 6mg rapid push is acceptable if BP is borderline, but cardioversion is preferred for clearly unstable
+- If adenosine is tried: may briefly convert then revert to SVT
+
+LABS (if ordered):
+- TSH: 0.1 (mildly suppressed — possible hyperthyroidism as trigger)
+- K+: 3.2 (mild hypokalemia)
+- Troponin: pending
+
+PROGRESSION:
+- After sedation + synchronized cardioversion 50-100J: "Rhythm converted — monitor shows normal sinus rhythm at 78 bpm. BP 118/74. Patient reports feeling much better."
+- If player tries to defibrillate without sync mode on a pulse-present patient: "Warning: patient has a pulse. This is not a shockable rhythm — you need SYNCHRONIZED cardioversion (sync mode ON). Unsynchronized shock on organized rhythm risks inducing VF."
+- If atropine ordered (wrong drug): "Atropine is for bradycardia, not tachycardia."
+
+RULES:
+- 2-3 sentences max per response
+- [NURSE] or [MONITOR] tags
+- End with "CASE COMPLETE" when cardioversion successful and patient stable
+- Emphasize importance of SYNC mode — critical teaching point`
+  }
+];
+
+function renderCaseGrid() {
+  document.getElementById('caseGrid').innerHTML = CASES.map(c => `
+    <div class="case-card" onclick="startCase('${c.id}')">
+      <div class="case-card-header">
+        <div class="case-card-title">${c.title}</div>
+        <span class="case-card-rhythm" style="background:rgba(0,0,0,0.3);border:1px solid ${c.rhythmColor};color:${c.rhythmColor}">${c.rhythm}</span>
+      </div>
+      <span class="difficulty-badge ${c.difficulty}">${c.difficulty}</span>
+      <div class="case-card-desc">${c.desc}</div>
+      <div class="case-card-vitals">
+        <div class="case-vital-chip"><div class="case-vital-label">HR</div><div class="case-vital-val ${c.vitals.hrClass === 'critical' ? 'red' : c.vitals.hrClass === 'abnormal' ? 'amber' : 'green'}">${c.vitals.hr}</div></div>
+        <div class="case-vital-chip"><div class="case-vital-label">BP</div><div class="case-vital-val red">${c.vitals.bp}</div></div>
+        <div class="case-vital-chip"><div class="case-vital-label">SpO₂</div><div class="case-vital-val ${c.vitals.o2Class === 'critical' ? 'red' : c.vitals.o2Class === 'abnormal' ? 'amber' : 'green'}">${c.vitals.o2}</div></div>
+        <div class="case-vital-chip"><div class="case-vital-label">RR</div><div class="case-vital-val ${c.vitals.rrClass === 'normal' ? 'green' : 'amber'}">${c.vitals.rr}</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ECG CANVAS
+// ═══════════════════════════════════════════════════════════
 const ecgCanvas = document.getElementById('ecgCanvas');
 const ecgCtx = ecgCanvas.getContext('2d');
 let ecgX = 0;
 let ecgData = [];
-let ecgRate = 'tachy';
+let ecgMode = 'tachy';
+let ecgAnimFrame = null;
 
 function ecgWaveform(x) {
-  const period = ecgRate === 'tachy' ? 60 : ecgRate === 'slow' ? 120 : ecgRate === 'vfib' ? 20 : 80;
-  const pos = x % period;
-  if (ecgRate === 'vfib') return (Math.random() - 0.5) * 18;
-  if (pos < period * 0.3) return Math.sin(pos / (period*0.3) * Math.PI) * 1.5;
-  if (pos > period * 0.35 && pos < period * 0.38) return 20;
-  if (pos >= period * 0.38 && pos < period * 0.42) return -8;
-  if (pos >= period * 0.42 && pos < period * 0.48) return 12;
-  if (pos >= period * 0.48 && pos < period * 0.58) return Math.sin((pos - period*0.48)/(period*0.1)*Math.PI)*3;
-  return 0;
+  switch(ecgMode) {
+    case 'vfib':
+      return (Math.random() - 0.5) * 18 + Math.sin(x * 0.8) * 6;
+    case 'brady': {
+      const period = 150;
+      const pos = x % period;
+      if (pos > period*0.4 && pos < period*0.43) return 22;
+      if (pos >= period*0.43 && pos < period*0.46) return -9;
+      if (pos >= period*0.46 && pos < period*0.52) return 14;
+      if (pos >= period*0.52 && pos < period*0.62) return Math.sin((pos-period*0.52)/(period*0.1)*Math.PI)*3;
+      return 0;
+    }
+    case 'tachy': {
+      const period = 46;
+      const pos = x % period;
+      if (pos > period*0.35 && pos < period*0.38) return 20;
+      if (pos >= period*0.38 && pos < period*0.41) return -7;
+      if (pos >= period*0.41 && pos < period*0.47) return 12;
+      if (pos >= period*0.47 && pos < period*0.57) return Math.sin((pos-period*0.47)/(period*0.1)*Math.PI)*2.5;
+      return 0;
+    }
+    case 'normal': {
+      const period = 80;
+      const pos = x % period;
+      if (pos < period*0.3) return Math.sin(pos/(period*0.3)*Math.PI)*1.5;
+      if (pos > period*0.35 && pos < period*0.38) return 20;
+      if (pos >= period*0.38 && pos < period*0.42) return -8;
+      if (pos >= period*0.42 && pos < period*0.48) return 13;
+      if (pos >= period*0.48 && pos < period*0.58) return Math.sin((pos-period*0.48)/(period*0.1)*Math.PI)*3;
+      return 0;
+    }
+    default:
+      return 0;
+  }
 }
 
 function drawECG() {
   const w = ecgCanvas.width, h = ecgCanvas.height;
   ecgCtx.clearRect(0, 0, w, h);
-  ecgCtx.strokeStyle = '#00ff88';
+  const color = ecgMode === 'vfib' ? '#ff3333' : '#00ff88';
+  ecgCtx.strokeStyle = color;
   ecgCtx.lineWidth = 1.5;
   ecgCtx.shadowBlur = 4;
-  ecgCtx.shadowColor = '#00ff88';
+  ecgCtx.shadowColor = color;
   ecgCtx.beginPath();
   for (let i = 0; i < ecgData.length; i++) {
-    const x = i;
     const y = h/2 - ecgData[i];
-    i === 0 ? ecgCtx.moveTo(x, y) : ecgCtx.lineTo(x, y);
+    i === 0 ? ecgCtx.moveTo(i, y) : ecgCtx.lineTo(i, y);
   }
   ecgCtx.stroke();
   ecgCtx.shadowBlur = 0;
@@ -839,6 +1754,7 @@ function drawECG() {
 function resizeECG() {
   const wrap = document.querySelector('.ecg-wrap');
   const label = document.querySelector('.ecg-label');
+  if (!wrap || !label) return;
   ecgCanvas.width = wrap.offsetWidth - label.offsetWidth - 32;
   ecgCanvas.height = 28;
   ecgData = new Array(ecgCanvas.width).fill(0);
@@ -848,93 +1764,131 @@ function tickECG() {
   ecgData.push(ecgWaveform(ecgX++));
   if (ecgData.length > ecgCanvas.width) ecgData.shift();
   drawECG();
+  ecgAnimFrame = requestAnimationFrame(tickECG);
 }
 
-// ── GAME STATE ──
+// ═══════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════
 let timerSeconds = 600;
 let timerInterval = null;
 let score = 0;
 let gameActive = false;
 let isThinking = false;
 let conversationHistory = [];
-let checklistItems = [];
-let vitals = { hr: 138, bp: '88/54', o2: 91, rr: 26 };
+let completedChecks = [];
+let activeCase = null;
 
-const SYSTEM_PROMPT = `You are the AI running a medical emergency simulation game called "Code Blue." You play multiple roles simultaneously:
+function startCase(caseId) {
+  activeCase = CASES.find(c => c.id === caseId);
+  if (!activeCase) return;
 
-1. NURSE: Responds to orders, reports findings, gives lab results and clinical updates
-2. PATIENT: If asked to examine or speak with patient, responds appropriately  
-3. MONITOR: Reports changes in vitals when clinically appropriate
+  // reset state
+  timerSeconds = 600;
+  score = 0;
+  gameActive = false;
+  isThinking = false;
+  conversationHistory = [];
+  completedChecks = [];
 
-THE SCENARIO:
-Patient: Margaret Chen, 67F
-Admitted for elective hip replacement surgery 2 days ago
-Post-op day 2, was doing well until tonight
+  if (ecgAnimFrame) cancelAnimationFrame(ecgAnimFrame);
 
-THE ACTUAL DIAGNOSIS (hidden from player): Pulmonary Embolism
-- She developed acute PE from DVT post-surgery
-- Risk factors: post-surgical, immobility, age 67, no prophylaxis documented
+  showScreen('gameScreen');
 
-VITALS ON ARRIVAL: HR 138, BP 88/54, SpO2 91%, RR 26
+  // set ECG mode
+  ecgMode = activeCase.ecgMode;
+  document.getElementById('ecgRhythmLabel').textContent = activeCase.ecgLabel;
 
-CLINICAL FINDINGS TO REVEAL PROGRESSIVELY:
-- Tachycardia, hypotension (obstructive shock)
-- Right calf swelling and tenderness (DVT source)
-- Pleuritic chest pain, sudden onset dyspnea
-- ECG: sinus tachycardia, S1Q3T3 pattern, right heart strain
-- CXR: Hampton's hump, Westermark sign (subtle)
-- Labs: Trop mildly elevated, BNP elevated, D-dimer very elevated >10
-- ABG: Hypoxia, respiratory alkalosis
-- CTPA: Saddle PE with bilateral filling defects, RV dilation
-- Echo (if ordered): RV strain, D-sign, McConnell's sign
+  // set vitals
+  const v = activeCase.vitals;
+  document.getElementById('vHR').textContent = v.hr;
+  document.getElementById('vHR').className = `vital-value ${v.hrClass}`;
+  document.getElementById('vBP').textContent = v.bp;
+  document.getElementById('vBP').className = `vital-value ${v.hrClass}`;
+  document.getElementById('vO2').textContent = v.o2;
+  document.getElementById('vO2').className = `vital-value ${v.o2Class}`;
+  document.getElementById('vRR').textContent = v.rr;
+  document.getElementById('vRR').className = `vital-value ${v.rrClass}`;
 
-GAME RULES:
-- Respond ONLY as the nurse/monitor/patient in character. Keep responses concise (2-4 sentences max per response).
-- Use medical terminology appropriately but also plain language
-- Reveal findings progressively - don't give everything at once
-- If player orders appropriate treatment (anticoagulation, O2, fluids, CTPA), acknowledge and update
-- Track what's been done - don't repeat completed actions
-- If player diagnoses PE correctly, congratulate and end with "DIAGNOSIS CONFIRMED"
-- If player orders something dangerous or clearly wrong, note the consequence
-- Keep urgency high - remind of deteriorating state if player is slow
-- Format: Start each response with [NURSE], [PATIENT], or [MONITOR] tag
-- Never reveal the diagnosis unless the player correctly identifies it
-- Score hints: +points for each correct action (O2, IV access, labs, fluids, CTPA, anticoagulation)
+  // patient info
+  document.getElementById('topbarCase').textContent = `${activeCase.rhythm} · ${activeCase.patient.meta}`;
+  document.getElementById('patientName').textContent = activeCase.patient.name;
+  document.getElementById('patientMeta').textContent = activeCase.patient.meta;
 
-Current conversation history will be provided. Stay in character always.`;
+  // checklist
+  renderChecklist(activeCase.checklist);
 
-// ── CHECKLIST SETUP ──
-const checklistDefs = [
-  { id: 'o2', text: 'Oxygen supplementation', keywords: ['oxygen', 'o2', 'nrb', 'nasal', 'rebreather', 'sat'] },
-  { id: 'iv', text: 'IV access established', keywords: ['iv', 'access', 'line', 'cannula', 'peripheral'] },
-  { id: 'labs', text: 'Stat labs ordered', keywords: ['labs', 'blood', 'cbc', 'troponin', 'bnp', 'd-dimer', 'abg', 'coagulation'] },
-  { id: 'ecg', text: '12-lead ECG obtained', keywords: ['ecg', 'ekg', '12-lead', 'electrocardiogram'] },
-  { id: 'fluids', text: 'IV fluids initiated', keywords: ['fluid', 'saline', 'ns', 'bolus', 'lactated'] },
-  { id: 'cxr', text: 'Chest X-ray ordered', keywords: ['cxr', 'chest x', 'x-ray', 'xray', 'radiograph'] },
-  { id: 'ctpa', text: 'CTPA ordered', keywords: ['ctpa', 'ct pulmonary', 'ct chest', 'computed tomography', 'ct angio'] },
-  { id: 'anticoag', text: 'Anticoagulation initiated', keywords: ['heparin', 'anticoag', 'lovenox', 'enoxaparin', 'thrombolysis', 'tpa', 'alteplase', 'warfarin', 'rivaroxaban', 'apixaban'] },
-];
+  // quick actions
+  document.getElementById('quickActionsBar').innerHTML =
+    activeCase.quickActions.map(a => `<button class="quick-btn" onclick="quickAction('${a}')">${a}</button>`).join('');
 
-function renderChecklist() {
-  const el = document.getElementById('checklist');
-  el.innerHTML = checklistDefs.map(item => `
+  // clear chat log
+  document.getElementById('chatLog').innerHTML = `<div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>`;
+
+  // start ECG
+  resizeECG();
+  tickECG();
+
+  // start timer
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      endGame(false, 'Time expired. The resuscitation was unsuccessful.');
+    }
+  }, 1000);
+
+  gameActive = true;
+
+  // system message + AI opening
+  addMessage('SYSTEM', 'system', `⚠ CODE BLUE — ${activeCase.patient.name}. ${activeCase.rhythm}. You are the team leader.`);
+
+  showTyping(true);
+  callAI("I'm responding to the code blue. What's the situation?").then(reply => {
+    showTyping(false);
+    parseAndDisplayReply(reply);
+  }).catch(() => {
+    showTyping(false);
+    addMessage('NURSE', 'nurse', `Doctor! ${activeCase.desc} What are your orders?`);
+  });
+
+  const input = document.getElementById('cmdInput');
+  input.focus();
+  input.onkeydown = e => { if (e.key === 'Enter') sendCommand(); };
+
+  document.getElementById('scoreDisplay').textContent = '0';
+}
+
+function exitToMenu() {
+  if (gameActive && !confirm('Exit this case? Your progress will be lost.')) return;
+  gameActive = false;
+  clearInterval(timerInterval);
+  if (ecgAnimFrame) cancelAnimationFrame(ecgAnimFrame);
+  showScreen('practiceScreen');
+}
+
+// ── CHECKLIST ──
+function renderChecklist(items) {
+  document.getElementById('checklist').innerHTML = items.map(item => `
     <div class="check-item" id="chk-${item.id}">
       <div class="check-box"></div>
       <span>${item.text}</span>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function checkAction(text) {
+  if (!activeCase) return;
   const lower = text.toLowerCase();
   let gained = 0;
-  checklistDefs.forEach(item => {
+  activeCase.checklist.forEach(item => {
     const el = document.getElementById(`chk-${item.id}`);
-    if (!el.classList.contains('done')) {
+    if (el && !el.classList.contains('done')) {
       if (item.keywords.some(k => lower.includes(k))) {
         el.classList.add('done');
         gained += 15;
-        checklistItems.push(item.id);
+        completedChecks.push(item.id);
       }
     }
   });
@@ -942,34 +1896,12 @@ function checkAction(text) {
 }
 
 // ── TIMER ──
-function startTimer() {
-  timerInterval = setInterval(() => {
-    timerSeconds--;
-    updateTimerDisplay();
-    if (timerSeconds <= 0) {
-      clearInterval(timerInterval);
-      endGame(false, 'Time expired. The patient deteriorated without a confirmed diagnosis.');
-    }
-  }, 1000);
-}
-
 function updateTimerDisplay() {
   const m = Math.floor(timerSeconds / 60);
   const s = timerSeconds % 60;
   const el = document.getElementById('timerDisplay');
   el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   el.className = timerSeconds > 300 ? '' : timerSeconds > 120 ? 'urgent' : 'critical';
-}
-
-// ── VITALS UPDATE ──
-function updateVitals(hrVal, bpVal, o2Val, rrVal, hrClass, o2Class, rrClass) {
-  document.getElementById('vHR').textContent = hrVal;
-  document.getElementById('vHR').className = `vital-value ${hrClass}`;
-  document.getElementById('vBP').textContent = bpVal;
-  document.getElementById('vO2').textContent = o2Val;
-  document.getElementById('vO2').className = `vital-value ${o2Class}`;
-  document.getElementById('vRR').textContent = rrVal;
-  document.getElementById('vRR').className = `vital-value ${rrClass}`;
 }
 
 // ── SCORE ──
@@ -982,66 +1914,62 @@ function addScore(pts) {
 function addMessage(sender, type, text) {
   const log = document.getElementById('chatLog');
   const typing = document.getElementById('typingIndicator');
-
   const msg = document.createElement('div');
   msg.className = 'msg';
-  msg.innerHTML = `
-    <div class="msg-sender ${type}">${sender}</div>
-    <div class="msg-body ${type}">${text}</div>
-  `;
+  msg.innerHTML = `<div class="msg-sender ${type}">${sender}</div><div class="msg-body ${type}">${text}</div>`;
   log.insertBefore(msg, typing);
   log.scrollTop = log.scrollHeight;
 }
 
 function showTyping(show) {
-  document.getElementById('typingIndicator').className = show ? 'typing-indicator show' : 'typing-indicator';
+  const el = document.getElementById('typingIndicator');
+  if (!el) return;
+  el.className = show ? 'typing-indicator show' : 'typing-indicator';
   if (show) document.getElementById('chatLog').scrollTop = document.getElementById('chatLog').scrollHeight;
 }
 
 // ── AI CALL ──
 async function callAI(userMessage) {
   conversationHistory.push({ role: 'user', content: userMessage });
-
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
+      max_tokens: 500,
+      system: activeCase.systemPrompt,
       messages: conversationHistory
     })
   });
-
   const data = await response.json();
-  const reply = data.content?.[0]?.text || 'No response received.';
+  const reply = data.content?.[0]?.text || 'No response.';
   conversationHistory.push({ role: 'assistant', content: reply });
   return reply;
 }
 
 function parseAndDisplayReply(reply) {
-  // Check for diagnosis confirmed
-  if (reply.includes('DIAGNOSIS CONFIRMED')) {
+  const upper = reply.toUpperCase();
+  if (upper.includes('ROSC CONFIRMED') || upper.includes('CASE COMPLETE') || upper.includes('DIAGNOSIS CONFIRMED')) {
     addScore(100);
-    setTimeout(() => endGame(true, reply.replace('DIAGNOSIS CONFIRMED', '').trim()), 800);
+    parseLines(reply);
+    setTimeout(() => endGame(true, reply), 1200);
     return;
   }
+  parseLines(reply);
+}
 
-  // Parse role tags
+function parseLines(reply) {
   const lines = reply.split('\n').filter(l => l.trim());
   lines.forEach(line => {
-    if (line.startsWith('[NURSE]')) {
-      addMessage('NURSE · Room 4', 'nurse', line.replace('[NURSE]', '').trim());
-    } else if (line.startsWith('[PATIENT]')) {
-      addMessage('PATIENT · M. Chen', 'ai', line.replace('[PATIENT]', '').trim());
-    } else if (line.startsWith('[MONITOR]')) {
-      addMessage('MONITOR', 'monitor', line.replace('[MONITOR]', '').trim());
-      // Simulate vitals improvement if O2/fluids given
-      if (checklistItems.includes('o2') && checklistItems.includes('fluids')) {
-        updateVitals(118, '94/62', 95, 22, 'abnormal', 'abnormal', 'abnormal');
-      }
-    } else if (line.trim()) {
-      addMessage('NURSE · Room 4', 'nurse', line.trim());
+    const clean = line.trim();
+    if (clean.startsWith('[NURSE]') || clean.startsWith('NURSE:')) {
+      addMessage('NURSE', 'nurse', clean.replace(/^\[NURSE\]|^NURSE:/, '').trim());
+    } else if (clean.startsWith('[MONITOR]') || clean.startsWith('MONITOR:')) {
+      addMessage('MONITOR', 'monitor', clean.replace(/^\[MONITOR\]|^MONITOR:/, '').trim());
+    } else if (clean.startsWith('[PATIENT]') || clean.startsWith('PATIENT:')) {
+      addMessage('PATIENT', 'ai', clean.replace(/^\[PATIENT\]|^PATIENT:/, '').trim());
+    } else if (clean) {
+      addMessage('NURSE', 'nurse', clean);
     }
   });
 }
@@ -1059,15 +1987,14 @@ async function sendCommand() {
 
   addMessage('YOU', 'player', text);
   checkAction(text);
-
   showTyping(true);
 
   try {
     const reply = await callAI(text);
     showTyping(false);
     parseAndDisplayReply(reply);
-    addScore(5); // base score for any action
-  } catch (err) {
+    addScore(5);
+  } catch {
     showTyping(false);
     addMessage('SYSTEM', 'system', 'Communication error. Try again.');
   }
@@ -1086,56 +2013,24 @@ function quickAction(text) {
 function endGame(survived, explanation) {
   gameActive = false;
   clearInterval(timerInterval);
+  if (ecgAnimFrame) cancelAnimationFrame(ecgAnimFrame);
 
-  const doneCount = checklistItems.length;
   const timeBonus = Math.floor(timerSeconds / 10);
   const finalScore = score + timeBonus;
 
-  const endScreen = document.getElementById('endScreen');
+  showScreen('endScreen');
   document.getElementById('endStatus').textContent = survived ? 'PATIENT STABLE' : 'CODE CALLED';
   document.getElementById('endStatus').className = `end-status ${survived ? 'survived' : 'failed'}`;
-  document.getElementById('endDiagnosis').textContent = 'Diagnosis: Pulmonary Embolism';
+  document.getElementById('endDiagnosis').textContent = activeCase ? activeCase.rhythm : '';
   document.getElementById('endExplanation').innerHTML = survived
-    ? `Well done. You identified a massive saddle PE presenting as obstructive shock post-operatively. Key findings: tachycardia, hypotension, hypoxia, pleuritic pain, right calf DVT, and S1Q3T3 on ECG. Anticoagulation and supportive care were the correct approach. Time bonus: +${timeBonus} pts.`
-    : `The patient had a massive pulmonary embolism — the leading cause of preventable post-surgical death. Key missed findings: pleuritic chest pain, right calf swelling (DVT source), S1Q3T3 on ECG, and elevated D-dimer. CTPA would have been diagnostic. ${explanation}`;
+    ? `Well done. You successfully managed <strong>${activeCase?.title}</strong>. ${completedChecks.length} of ${activeCase?.checklist.length} checklist items completed. Time bonus: +${timeBonus} pts.`
+    : `The case was ${activeCase?.title}. ${explanation} Review the algorithm and try again.`;
   document.getElementById('endScore').textContent = finalScore;
-  endScreen.className = 'show';
-}
-
-// ── START GAME ──
-async function startGame() {
-  document.getElementById('introScreen').style.display = 'none';
-  document.getElementById('gameScreen').style.display = 'flex';
-
-  gameActive = true;
-  document.getElementById('patientName').textContent = 'Margaret Chen';
-  document.getElementById('patientMeta').textContent = '67F · Post-op Day 2 · Hip Replacement';
-
-  renderChecklist();
-  resizeECG();
-  setInterval(tickECG, 30);
-  startTimer();
-
-  // Initial system message
-  addMessage('SYSTEM', 'system', '⚠ CODE BLUE — Room 4. Patient unresponsive to nurse call. Monitor alarming. You are the on-call resident.');
-
-  showTyping(true);
-  try {
-    const opening = await callAI("I'm responding to the code blue. What's the situation?");
-    showTyping(false);
-    parseAndDisplayReply(opening);
-  } catch(e) {
-    showTyping(false);
-    addMessage('NURSE · Room 4', 'nurse', "Doctor, thank god you're here. Mrs. Chen suddenly became short of breath and her pressure dropped. She's been on the floor since surgery 2 days ago. Monitor shows HR 138, BP 88/54, sats 91%.");
-  }
-
-  document.getElementById('cmdInput').focus();
-  document.getElementById('cmdInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendCommand();
-  });
 }
 
 window.addEventListener('resize', resizeECG);
+renderCaseGrid();
+renderDrugGrid();
 </script>
 </body>
 </html>
